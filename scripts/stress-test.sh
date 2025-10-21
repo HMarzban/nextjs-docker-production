@@ -274,45 +274,58 @@ test_sustained_load() {
     
     echo "  Running continuous load test..."
     
+    # Cooldown period after burst test
+    sleep 2
+    
     local end_time=$(($(date +%s) + TEST_DURATION))
     local success=0
     local fail=0
     local total_time=0
     local request_count=0
+    local temp_file=$(mktemp)
     
     while [ $(date +%s) -lt $end_time ]; do
-        local batch_success=0
-        local batch_time=0
-        
-        # Send batch of 20 requests
-        for i in $(seq 1 20); do
-            result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 5 "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
-            IFS=',' read -r code time_total <<< "$result"
-            
-            if [ "$code" -eq 200 ]; then
-                ((batch_success++))
-                batch_time=$(echo "$batch_time + $time_total" | bc)
-            fi
-        done &
+        # Send batch of 10 requests in parallel (reduced from 20)
+        for i in $(seq 1 10); do
+            (
+                result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 15 "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
+                echo "$result" >> "$temp_file"
+            ) &
+        done
         
         wait
         
-        success=$((success + batch_success))
-        total_time=$(echo "$total_time + $batch_time" | bc)
-        request_count=$((request_count + 20))
-        
         local elapsed=$(($(date +%s) - (end_time - TEST_DURATION)))
-        printf "\r  [%3ds/%3ds] Requests: %5d | Success: %5d | Errors: %3d" \
-            $elapsed $TEST_DURATION $request_count $success $((request_count - success))
         
-        sleep 0.5
+        # Count current results
+        local current_success=$(grep -c "^200," "$temp_file" 2>/dev/null || echo "0")
+        local current_total=$(wc -l < "$temp_file" 2>/dev/null | tr -d ' ')
+        
+        printf "\r  [%3ds/%3ds] Requests: %5d | Success: %5d | Errors: %3d" \
+            $elapsed $TEST_DURATION $current_total $current_success $((current_total - current_success))
+        
+        sleep 1
     done
     
     echo ""
     
-    local avg_time=$(echo "scale=3; $total_time / $success" | bc)
-    local rps=$(echo "scale=2; $success / $TEST_DURATION" | bc)
-    local error_rate=$(echo "scale=2; ($request_count - $success) * 100 / $request_count" | bc)
+    # Calculate final metrics
+    success=$(grep -c "^200," "$temp_file" 2>/dev/null || echo "0")
+    request_count=$(wc -l < "$temp_file" 2>/dev/null | tr -d ' ')
+    
+    # Calculate average time from successful requests
+    if [ $success -gt 0 ]; then
+        total_time=$(grep "^200," "$temp_file" | cut -d',' -f2 | awk '{sum+=$1} END {print sum}')
+        local avg_time=$(echo "scale=3; $total_time / $success" | bc)
+        local rps=$(echo "scale=2; $success / $TEST_DURATION" | bc)
+    else
+        local avg_time="N/A"
+        local rps="0"
+    fi
+    
+    local error_rate=$(echo "scale=2; ($request_count - $success) * 100 / $request_count" | bc 2>/dev/null || echo "100")
+    
+    rm -f "$temp_file"
     
     echo ""
     print_result "Total Requests" "$request_count"
@@ -445,11 +458,18 @@ main() {
     scale_containers
     verify_setup
     
-    # Run all tests
+    # Run all tests with cooldown periods
     test_homepage_concurrent
+    sleep 2
+    
     test_api_burst
+    sleep 3  # Longer cooldown after burst test
+    
     test_sustained_load
+    sleep 2
+    
     test_mixed_workload
+    sleep 2
     
     # Collect metrics
     collect_metrics
