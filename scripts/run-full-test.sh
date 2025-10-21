@@ -21,7 +21,7 @@ cat << "EOF"
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
 ║     FULL PRODUCTION TEST SUITE                             ║
-║     Build → Deploy → Scale → Load Test → Report           ║
+║     Build → Deploy → Scale → Load Test → Report            ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 EOF

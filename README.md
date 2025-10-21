@@ -83,16 +83,17 @@ open ./load-test-results/report.html
 
 ```
 .
-├── pages/                      # Next.js pages
-│   ├── _app.tsx               # App wrapper + PWA
-│   ├── index.tsx              # Homepage
-│   ├── weather.tsx            # Weather dashboard
-│   └── api/                   # API routes
-├── components/                # React components
-├── styles/                    # Tailwind CSS
-├── public/                    # Static assets
-├── worker/                    # Service worker (PWA)
-├── types/                     # TypeScript definitions
+├── src/                        # Application source code
+│   ├── pages/                 # Next.js pages
+│   │   ├── _app.tsx          # App wrapper + PWA
+│   │   ├── index.tsx         # Homepage
+│   │   ├── weather.tsx       # Weather dashboard
+│   │   └── api/              # API routes
+│   ├── components/            # React components
+│   ├── styles/                # Tailwind CSS
+│   ├── public/                # Static assets
+│   ├── worker/                # Service worker (PWA)
+│   └── types/                 # TypeScript definitions
 ├── docs/                      # Documentation
 │   ├── BUILD-ID.md           # Scaling guide
 │   ├── DOCKER.md             # Deployment guide
