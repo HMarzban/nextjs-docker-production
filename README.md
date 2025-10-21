@@ -38,7 +38,7 @@ Visit <http://localhost:3000>
 ```bash
 # Build production image
 make prod-build
-# or: ./build-production.sh
+# or: ./scripts/build-production.sh
 
 # Start with 10 instances
 docker-compose -f docker-compose.prod.yml up -d --scale app=10
@@ -53,7 +53,7 @@ Test your scaled deployment:
 
 ```bash
 # Run full test suite
-./run-full-test.sh
+./scripts/run-full-test.sh
 
 # Or individual tests
 make test-stress              # Standard: 10k requests, 60s
@@ -61,7 +61,7 @@ make test-stress-heavy        # Heavy: 20k requests, 120s
 make test-stress-extreme      # Extreme: 50k requests, 300s
 
 # Generate HTML report
-./generate-report.sh
+./scripts/generate-report.sh
 open ./load-test-results/report.html
 ```
 
@@ -92,13 +92,25 @@ open ./load-test-results/report.html
 ├── styles/                    # Tailwind CSS
 ├── public/                    # Static assets
 ├── worker/                    # Service worker (PWA)
+├── types/                     # TypeScript definitions
+├── docs/                      # Documentation
+│   ├── BUILD-ID.md           # Scaling guide
+│   ├── DOCKER.md             # Deployment guide
+│   ├── GITHUB-DEPLOY.md      # Git workflow
+│   └── LOAD-TEST.md          # Testing guide
+├── scripts/                   # Shell scripts
+│   ├── build-production.sh   # Build with consistent ID
+│   ├── stress-test.sh        # Load testing engine
+│   ├── run-full-test.sh      # Full test automation
+│   ├── generate-report.sh    # HTML report generator
+│   ├── test-load-balancing.sh
+│   ├── test-container-distribution.sh
+│   └── generate-icons.js     # PWA icon generator
 ├── Dockerfile.bun             # Production Docker image
 ├── docker-compose.prod.yml    # Production deployment
 ├── nginx.conf                 # Load balancer config
-├── build-production.sh        # Build with consistent ID
-├── stress-test.sh             # Load testing engine
-├── run-full-test.sh           # Full test automation
-└── Makefile                   # Common commands
+├── Makefile                   # Common commands
+└── README.md                  # This file
 ```
 
 ## Make Commands
@@ -219,10 +231,10 @@ The app is installable and works offline:
 
 ## Documentation
 
-- **[DOCKER.md](./DOCKER.md)** - Complete deployment guide
-- **[BUILD-ID.md](./BUILD-ID.md)** - Scaling and build IDs
-- **[LOAD-TEST.md](./LOAD-TEST.md)** - Testing documentation
-- **[GITHUB-DEPLOY.md](./GITHUB-DEPLOY.md)** - Push to GitHub
+- **[docs/DOCKER.md](./docs/DOCKER.md)** - Complete deployment guide
+- **[docs/BUILD-ID.md](./docs/BUILD-ID.md)** - Scaling and build IDs
+- **[docs/LOAD-TEST.md](./docs/LOAD-TEST.md)** - Testing documentation
+- **[docs/GITHUB-DEPLOY.md](./docs/GITHUB-DEPLOY.md)** - Push to GitHub
 
 ## Common Tasks
 
@@ -257,7 +269,7 @@ make prod-rebuild
 
 # Or manually
 docker-compose -f docker-compose.prod.yml down
-./build-production.sh
+./scripts/build-production.sh
 docker-compose -f docker-compose.prod.yml up -d --scale app=10
 ```
 
@@ -265,14 +277,14 @@ docker-compose -f docker-compose.prod.yml up -d --scale app=10
 
 ```bash
 # Full automated test
-./run-full-test.sh
+./scripts/run-full-test.sh
 
 # Custom test (instances, concurrent, total, duration)
-./stress-test.sh 15 300 30000 180
+./scripts/stress-test.sh 15 300 30000 180
 
 # Quick validation
-./test-load-balancing.sh
-./test-container-distribution.sh
+./scripts/test-load-balancing.sh
+./scripts/test-container-distribution.sh
 ```
 
 ## Troubleshooting
@@ -362,9 +374,9 @@ Production-ready setup. Fork, test, improve, PR.
 **Ready to deploy?**
 
 ```bash
-./build-production.sh
+./scripts/build-production.sh
 docker-compose -f docker-compose.prod.yml up -d --scale app=10
-./stress-test.sh
+./scripts/stress-test.sh
 ```
 
 🚀 **Production ready!**

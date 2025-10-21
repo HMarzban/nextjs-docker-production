@@ -29,7 +29,7 @@ clean: ## Clean up everything
 
 # Production commands
 prod-build: ## Build production image with consistent build ID
-	./build-production.sh
+	./scripts/build-production.sh
 
 prod-up: ## Start production with scaling
 	docker-compose -f docker-compose.prod.yml up -d
@@ -44,7 +44,7 @@ prod-logs: ## View production logs
 	docker-compose -f docker-compose.prod.yml logs -f
 
 prod-rebuild: ## Rebuild and restart production
-	./build-production.sh && docker-compose -f docker-compose.prod.yml up -d --scale app=10
+	./scripts/build-production.sh && docker-compose -f docker-compose.prod.yml up -d --scale app=10
 
 # Quick deploy
 deploy: ## Quick rebuild and deploy
@@ -55,23 +55,20 @@ test-health: ## Test health endpoint
 	curl -f http://localhost:3000/api/hello || exit 1
 
 test-distribution: ## Test container distribution
-	./test-container-distribution.sh
+	./scripts/test-container-distribution.sh
 
 test-balancing: ## Test load balancing
-	./test-load-balancing.sh
-
-test-debug: ## Debug connection issues
-	./debug-connection.sh
+	./scripts/test-load-balancing.sh
 
 test-stress: ## Run heavy load test with 10 instances
-	./stress-test.sh 10 100 10000 60
+	./scripts/stress-test.sh 10 100 10000 60
 
 test-stress-heavy: ## Run HEAVY stress test (10 instances, 200 concurrent, 20k requests, 120s sustained)
-	./stress-test.sh 10 200 20000 120
+	./scripts/stress-test.sh 10 200 20000 120
 
 test-stress-extreme: ## Run EXTREME stress test (10 instances, 500 concurrent, 50k requests, 300s sustained)
-	./stress-test.sh 10 500 50000 300
+	./scripts/stress-test.sh 10 500 50000 300
 
 test-all: ## Run all tests
-	./test-load-balancing.sh && ./test-container-distribution.sh
+	./scripts/test-load-balancing.sh && ./scripts/test-container-distribution.sh
 

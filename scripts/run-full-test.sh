@@ -29,7 +29,7 @@ echo -e "${NC}\n"
 
 # Step 1: Build
 echo -e "${YELLOW}[1/6] Building production image with consistent build ID...${NC}"
-./build-production.sh > /dev/null 2>&1 || {
+./scripts/build-production.sh > /dev/null 2>&1 || {
     echo -e "${RED}Build failed!${NC}"
     exit 1
 }
@@ -81,7 +81,7 @@ echo -e "  Total Requests: ${TOTAL}"
 echo -e "  Duration: ${DURATION}s"
 echo ""
 
-./stress-test.sh ${INSTANCES} ${CONCURRENT} ${TOTAL} ${DURATION}
+./scripts/stress-test.sh ${INSTANCES} ${CONCURRENT} ${TOTAL} ${DURATION}
 
 # Step 6: Show summary
 echo -e "\n${YELLOW}[6/6] Final System Status${NC}"
