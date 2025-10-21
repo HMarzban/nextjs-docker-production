@@ -407,7 +407,7 @@ test_mixed_workload() {
             # Weather
             curl -s -o /dev/null -w "weather,%{http_code}\n" "${BASE_URL}/weather" 2>/dev/null >> "$temp_file" &
             
-            ((count++))
+            count=$((count + 1))
             local elapsed=$(($(date +%s) - (end_time - duration)))
             printf "\r  [%2ds/%2ds] Sending mixed requests..." $elapsed $duration
             
