@@ -230,10 +230,7 @@ test_api_burst() {
         [ $batch_end -gt $TOTAL_REQUESTS ] && batch_end=$TOTAL_REQUESTS
         
         for i in $(seq $batch_start $batch_end); do
-            (
-                code=$(curl -s -o /dev/null -w "%{http_code}" -m 10 "${BASE_URL}/api/hello" 2>/dev/null || echo "000")
-                echo "$code"
-            ) &
+            curl -s -o /dev/null -m 10 "${BASE_URL}/api/hello" >/dev/null 2>&1 &
         done
         
         # Collect batch results
