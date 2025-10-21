@@ -1,0 +1,53 @@
+# Production-ready Next.js with Bun
+FROM oven/bun:1-alpine AS base
+
+# Dependencies layer
+FROM base AS deps
+WORKDIR /app
+
+# Copy lockfile first for better caching
+# Use wildcard to handle both bun.lockb and bun.lock
+COPY package.json bun.lock* ./
+# Install all dependencies including devDependencies (needed for build)
+RUN bun install --frozen-lockfile
+
+# Build layer
+FROM base AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build the app
+RUN bun run build
+
+# Production runtime
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0"
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built application
+# Next.js standalone output includes only necessary files
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+USER nextjs
+
+EXPOSE 3000
+
+# Simple healthcheck - less overhead than fetch
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD bun -e "fetch('http://localhost:3000/api/hello').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
+CMD ["bun", "server.js"]
