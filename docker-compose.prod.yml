@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile.bun
       args:
         - BUILDKIT_INLINE_CACHE=1
+        # Consistent build ID for horizontal scaling (prevents version skew)
+        - BUILD_ID=${BUILD_ID:-production-build}
+        - GIT_HASH=${GIT_HASH:-latest}
     image: nextjs-app:latest
     # DO NOT add container_name - it breaks scaling
     expose:

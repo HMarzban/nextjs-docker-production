@@ -28,6 +28,9 @@ clean: ## Clean up everything
 	docker system prune -f
 
 # Production commands
+prod-build: ## Build production image with consistent build ID
+	./build-production.sh
+
 prod-up: ## Start production with scaling
 	docker-compose -f docker-compose.prod.yml up -d
 
@@ -39,6 +42,9 @@ prod-scale: ## Scale to N instances (make prod-scale N=5)
 
 prod-logs: ## View production logs
 	docker-compose -f docker-compose.prod.yml logs -f
+
+prod-rebuild: ## Rebuild and restart production
+	./build-production.sh && docker-compose -f docker-compose.prod.yml up -d --scale app=10
 
 # Quick deploy
 deploy: ## Quick rebuild and deploy

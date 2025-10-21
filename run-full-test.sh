@@ -28,8 +28,8 @@ EOF
 echo -e "${NC}\n"
 
 # Step 1: Build
-echo -e "${YELLOW}[1/6] Building production image...${NC}"
-docker-compose -f docker-compose.prod.yml build --quiet || {
+echo -e "${YELLOW}[1/6] Building production image with consistent build ID...${NC}"
+./build-production.sh > /dev/null 2>&1 || {
     echo -e "${RED}Build failed!${NC}"
     exit 1
 }

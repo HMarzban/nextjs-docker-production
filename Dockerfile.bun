@@ -15,10 +15,16 @@ RUN bun install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
+# Accept build ID as build arg for consistent versioning across containers
+ARG BUILD_ID
+ARG GIT_HASH
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    BUILD_ID=${BUILD_ID} \
+    GIT_HASH=${GIT_HASH}
 
 # Build the app
 RUN bun run build
