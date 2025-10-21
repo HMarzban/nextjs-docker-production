@@ -1,273 +1,370 @@
-# Next.js on Docker with Bun, TypeScript & Tailwind CSS v4
+# Next.js Production on Docker
 
-Production-ready Next.js app with TypeScript, Tailwind CSS v4, and optimized Docker setup using Bun.
+Production-ready Next.js app with TypeScript, Tailwind CSS v4, Bun runtime, Docker scaling, Nginx load balancing, and comprehensive load testing.
 
 ## Features
 
 - ✅ **Next.js 15.5** - Latest with Turbopack and React 19
-- ✅ **TypeScript** - Full type safety and IntelliSense
-- ✅ **Tailwind CSS v4** - Latest with CSS-first configuration
-- ✅ **daisyUI 5.3** - Beautiful UI components
-- ✅ **Turbopack** - Ultra-fast dev server (3x faster than Webpack)
-- ✅ **Weather Dashboard** - Real-time weather with SSR
-- ✅ **PWA Support** - Offline mode, installable, background updates
-- ✅ **Bun** - Fast package manager and runtime
-- ✅ **Docker** - Optimized multi-stage build
-- ✅ **Production Ready** - Standalone output, proper caching
+- ✅ **TypeScript** - Full type safety
+- ✅ **Tailwind CSS v4 + daisyUI** - Modern styling
+- ✅ **Bun Runtime** - Fast package manager and runtime
+- ✅ **Docker** - Multi-stage optimized builds
+- ✅ **Nginx Load Balancer** - Production-grade reverse proxy
+- ✅ **Horizontal Scaling** - Tested with 10+ instances
+- ✅ **Load Testing Suite** - Comprehensive performance testing
+- ✅ **PWA Support** - Offline mode, installable
+- ✅ **Production Ready** - Battle-tested configuration
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Development
 
 ```bash
+# Install dependencies
 bun install
-```
 
-### 2. Setup API Key (Required for Weather Page)
+# Setup environment (optional - for weather page)
+cp .env.example .env.local
+# Add your OpenWeatherMap API key
 
-Get your **FREE** OpenWeatherMap API key:
-
-1. Sign up at: <https://openweathermap.org/api>
-2. Copy your API key (takes 10-15 mins to activate)
-3. Create `.env.local` in project root:
-
-```bash
-OPENWEATHER_API_KEY=your_actual_api_key_here
-```
-
-### 3. Run Development Server
-
-```bash
+# Run dev server
 bun dev
 ```
 
-Visit:
+Visit <http://localhost:3000>
 
-- **Home:** <http://localhost:3000>
-- **Weather Dashboard:** <http://localhost:3000/weather>
-
-> **Note:** Weather page will show a setup warning if API key is missing
-
-### Docker Deployment
-
-**Quick Start:**
+### Production Deployment
 
 ```bash
-# Single instance
-make up
+# Build production image
+make prod-build
+# or: ./build-production.sh
 
-# Production with scaling
-make prod-scale N=3
+# Start with 10 instances
+docker-compose -f docker-compose.prod.yml up -d --scale app=10
+
+# Verify
+curl http://localhost:3009/health
 ```
-
-**📚 Full Documentation:**
-
-- [QUICKSTART.md](./QUICKSTART.md) - Quick reference
-- [DOCKER.md](./DOCKER.md) - Complete guide
-- [PWA.md](./PWA.md) - Progressive Web App setup
-- [OFFLINE-TEST.md](./OFFLINE-TEST.md) - Offline mode testing
-- [SCALE-TEST.md](./SCALE-TEST.md) - Horizontal scaling guide
-- [SCALE-RESULTS.md](./SCALE-RESULTS.md) - Load testing results
-
-**🚀 Load Testing:**
-
-- [TEST-SUITE-README.md](./TEST-SUITE-README.md) - Complete load test overview
-- [TESTING-QUICKSTART.md](./TESTING-QUICKSTART.md) - Quick testing guide
-- [LOAD-TEST.md](./LOAD-TEST.md) - Detailed testing documentation
-
-**Features:**
-
-- ✅ Multi-stage optimized builds
-- ✅ Health checks & auto-restart
-- ✅ Resource limits (CPU/Memory)
-- ✅ Nginx load balancing
-- ✅ Horizontal scaling
-- ✅ Production load testing suite
-- ✅ Production-ready
 
 ## Load Testing
 
-Test your deployment with production-grade load testing:
+Test your scaled deployment:
 
 ```bash
-# One-command full test (build + deploy + test)
+# Run full test suite
 ./run-full-test.sh
 
-# Or use Make targets
-make test-stress              # 10 instances, 10k requests, 60s
-make test-stress-heavy        # 10 instances, 20k requests, 120s
-make test-stress-extreme      # 10 instances, 50k requests, 300s
+# Or individual tests
+make test-stress              # Standard: 10k requests, 60s
+make test-stress-heavy        # Heavy: 20k requests, 120s
+make test-stress-extreme      # Extreme: 50k requests, 300s
+
+# Generate HTML report
+./generate-report.sh
+open ./load-test-results/report.html
 ```
 
 **What gets tested:**
 
-- ✅ Homepage concurrent load (100-500 concurrent users)
-- ✅ API burst load (10k-50k requests)
-- ✅ Sustained load (60-300 seconds)
-- ✅ Mixed workload (multiple endpoints)
+- Homepage concurrent load (100-500 concurrent users)
+- API burst load (10k-50k requests)
+- Sustained load (60-300 seconds)
+- Mixed workload (multiple endpoints)
 
 **Metrics collected:**
 
 - Response time, TTFB, throughput
 - Success rate, error rate
 - CPU & memory per container
-- Container health & distribution
-- Connection pooling efficiency
-
-**Reports generated:**
-
-```bash
-./generate-report.sh
-open ./load-test-results/report.html
-```
-
-See [TESTING-QUICKSTART.md](./TESTING-QUICKSTART.md) to get started.
+- Container health & load distribution
 
 ## Project Structure
 
 ```
-├── pages/           # Next.js pages (TypeScript)
-│   ├── _app.tsx    # App wrapper + PWA setup
-│   ├── index.tsx   # Home page with daisyUI
-│   ├── weather.tsx # Weather dashboard with SSR
-│   └── api/
-│       ├── hello.ts   # Example API route
-│       └── weather.ts # Weather API proxy
-├── components/     # React components
-│   └── OfflineIndicator.tsx # Network status indicator
-├── styles/         # Styling (Tailwind)
-│   └── globals.css # Main styles + Tailwind + daisyUI
-├── public/         # Static assets
-│   ├── manifest.json  # PWA manifest
-│   ├── icon-*.svg     # PWA icons
-│   └── favicon.ico
-├── next.config.mjs # Next.js + PWA config
-├── tsconfig.json   # TypeScript configuration
-├── Dockerfile.bun  # Optimized Docker build
-└── package.json
+.
+├── pages/                      # Next.js pages
+│   ├── _app.tsx               # App wrapper + PWA
+│   ├── index.tsx              # Homepage
+│   ├── weather.tsx            # Weather dashboard
+│   └── api/                   # API routes
+├── components/                # React components
+├── styles/                    # Tailwind CSS
+├── public/                    # Static assets
+├── worker/                    # Service worker (PWA)
+├── Dockerfile.bun             # Production Docker image
+├── docker-compose.prod.yml    # Production deployment
+├── nginx.conf                 # Load balancer config
+├── build-production.sh        # Build with consistent ID
+├── stress-test.sh             # Load testing engine
+├── run-full-test.sh           # Full test automation
+└── Makefile                   # Common commands
 ```
 
-## Scripts
+## Make Commands
 
 ```bash
-bun dev         # Development server with Turbopack (⚡ 3x faster)
-bun build       # Production build (Webpack - optimized)
-bun start       # Production server
-bun type-check  # TypeScript type checking
+# Production
+make prod-build         # Build with consistent build ID
+make prod-up            # Start services
+make prod-down          # Stop services
+make prod-scale N=10    # Scale to N instances
+make prod-logs          # View logs
+make prod-rebuild       # Rebuild and restart
+
+# Testing
+make test-stress        # Standard load test
+make test-stress-heavy  # Heavy load test
+make test-stress-extreme # Extreme load test
 ```
 
-**Note:** Turbopack is used for dev only (Next.js 15 doesn't support Turbopack for production builds yet)
+## Architecture
 
-## Weather Dashboard
+### Horizontal Scaling
 
-Visit `/weather` to see the real-time weather dashboard:
+```
+                    ┌─────────────┐
+                    │   Nginx     │  (Port 3009)
+                    │   Alpine    │
+                    └──────┬──────┘
+                           │
+            ┌──────────────┼──────────────┐
+            │              │              │
+       ┌────▼───┐     ┌────▼───┐    ┌────▼───┐
+       │ App #1 │     │ App #2 │    │ App #10│
+       │  Bun   │     │  Bun   │    │  Bun   │
+       └────────┘     └────────┘    └────────┘
+            │              │              │
+            └──────────────┴──────────────┘
+                   Docker Network
+```
+
+**Load Balancing:** `least_conn` algorithm  
+**Connection Pooling:** 128 keepalive connections  
+**Health Checks:** 30s intervals  
+**Resource Limits:** 1GB RAM, 2 CPUs per container  
+
+### Performance
+
+Expected with 10 instances:
+
+| Metric | Target |
+|--------|--------|
+| Throughput | >1000 req/s |
+| API Response | <100ms |
+| Homepage (SSR) | <500ms |
+| Success Rate | >99% |
+| Error Rate | <1% |
+
+## Configuration
+
+### Environment Variables
+
+Create `.env.local` (optional):
+
+```bash
+# OpenWeatherMap API Key (for weather page)
+OPENWEATHER_API_KEY=your_api_key_here
+```
+
+### Build ID (Important for Scaling)
+
+The app uses consistent build IDs to prevent version skew across containers:
+
+```bash
+# Automatic (uses git hash or timestamp)
+./build-production.sh
+
+# Manual
+BUILD_ID="v1.2.3" docker-compose -f docker-compose.prod.yml build
+```
+
+See [BUILD-ID.md](./BUILD-ID.md) for details.
+
+### Nginx Configuration
+
+Production-grade `nginx.conf` includes:
+
+- `least_conn` load balancing
+- Connection pooling (128 keepalive)
+- Rate limiting (DDoS protection)
+- Gzip compression
+- Security headers
+- Docker DNS resolver
+- Async I/O
+
+## Progressive Web App (PWA)
+
+The app is installable and works offline:
+
+**Install:**
+
+- **Desktop:** Chrome/Edge - Click install icon in address bar
+- **Mobile:** Add to Home Screen
 
 **Features:**
 
-- 🌍 Pre-loaded with Tehran, London, and New York weather
-- ➕ Add any city in the world
-- ❌ Remove cities you don't need
-- 🎨 Beautiful UI with weather icons
-- ⚡ Server-Side Rendering for instant load
-- 📱 Fully responsive design
+- 📱 Installable (mobile + desktop)
+- 🔌 Offline mode
+- 🔄 Background sync
+- 💾 Smart caching
 
-**Tech Stack:**
-
-- OpenWeatherMap API for weather data
-- React Icons (weather icons)
-- daisyUI components
-- SSR with `getServerSideProps`
-- Axios for API calls
-
-## Styling
-
-### Tailwind CSS v4 + daisyUI
-
-Clean and simple - just Tailwind + daisyUI:
-
-```scss
-// styles/globals.scss
-@import "tailwindcss";
-@plugin "daisyui";
-```
-
-Use Tailwind utility classes and daisyUI components:
-
-```jsx
-<button className="btn btn-primary">Click me</button>
-<div className="card shadow-xl bg-base-100">
-  <div className="card-body">
-    <h2 className="card-title">Card Title</h2>
-    <p>Card content</p>
-  </div>
-</div>
-```
-
-> **Browser Cache:**
-> If styles don't load, hard refresh: **Cmd+Shift+R** (Mac) or **Ctrl+Shift+R** (Windows)
-
-> **Sass Warning:**
-> The single `@import "tailwindcss"` deprecation warning is expected and harmless.
-
-> **Turbopack Errors:**
-> If you see cache errors: `pkill -9 -f "next dev" && rm -rf .next && bun dev`
-
-Browse components: [daisyUI Documentation](https://daisyui.com/components/)
-
-## Environment Variables
-
-Create `.env.local` for local development:
+**Test offline mode:**
 
 ```bash
-# OpenWeatherMap API Key (required for weather page)
-# Get your free API key from https://openweathermap.org/api
-OPENWEATHER_API_KEY=your_openweather_api_key_here
+# 1. Open app in browser
+# 2. Open DevTools → Network → Throttling → Offline
+# 3. Reload page - should work offline
 ```
 
-**Important Notes:**
+## Documentation
 
-- Free tier includes 1,000 API calls/day
-- New API keys take 10-15 minutes to activate
-- Check key status: <https://home.openweathermap.org/api_keys>
-- Detailed setup instructions in `SETUP.md`
+- **[DOCKER.md](./DOCKER.md)** - Complete deployment guide
+- **[BUILD-ID.md](./BUILD-ID.md)** - Scaling and build IDs
+- **[LOAD-TEST.md](./LOAD-TEST.md)** - Testing documentation
+- **[GITHUB-DEPLOY.md](./GITHUB-DEPLOY.md)** - Push to GitHub
 
-## Production Deployment
+## Common Tasks
 
-The Docker image is optimized:
+### Scale Deployment
 
-- Multi-stage build
-- Standalone output (minimal size)
-- Non-root user
-- Layer caching
-- Health checks & auto-restart
-- Horizontal scaling support
+```bash
+# Scale to 5 instances
+docker-compose -f docker-compose.prod.yml up -d --scale app=5
 
-## Browser Support
+# Scale to 20 instances
+docker-compose -f docker-compose.prod.yml up -d --scale app=20
+```
 
-Modern browsers with full ES6+ support:
+### Monitor Resources
 
-- Chrome/Edge (latest)
-- Safari (latest)
-- Firefox (latest)
+```bash
+# Watch container stats
+docker stats
 
-## PWA Features
+# Check nginx status
+curl http://localhost:3009/nginx_status
 
-Full Progressive Web App support:
+# View logs
+docker-compose -f docker-compose.prod.yml logs -f app
+```
 
-- 📱 **Installable** - Add to home screen (mobile + desktop)
-- 🔌 **Offline Mode** - Works without internet
-- 🔄 **Background Updates** - Auto-sync new versions
-- 📊 **Network Indicator** - Shows online/offline status
-- 💾 **Smart Caching** - Entire app cached locally
+### Rebuild After Changes
 
-See [PWA.md](./PWA.md) for details.
+```bash
+# Rebuild with new build ID
+make prod-rebuild
 
-## Notes
+# Or manually
+docker-compose -f docker-compose.prod.yml down
+./build-production.sh
+docker-compose -f docker-compose.prod.yml up -d --scale app=10
+```
 
-- Uses Turbopack for faster dev builds
-- Tailwind CSS v4 with daisyUI components
-- Optimized Docker setup with Bun runtime
-- Production-ready with scaling capabilities
-- PWA enabled in production only
+### Run Load Tests
 
-Clean, simple, production-ready. No overengineering.
+```bash
+# Full automated test
+./run-full-test.sh
+
+# Custom test (instances, concurrent, total, duration)
+./stress-test.sh 15 300 30000 180
+
+# Quick validation
+./test-load-balancing.sh
+./test-container-distribution.sh
+```
+
+## Troubleshooting
+
+### Check Health
+
+```bash
+# Nginx
+curl http://localhost:3009/health
+
+# App API
+curl http://localhost:3009/api/hello
+
+# Container status
+docker-compose -f docker-compose.prod.yml ps
+```
+
+### View Logs
+
+```bash
+# All services
+docker-compose -f docker-compose.prod.yml logs -f
+
+# App only
+docker-compose -f docker-compose.prod.yml logs -f app
+
+# Nginx only
+docker-compose -f docker-compose.prod.yml logs -f nginx
+```
+
+### Containers Not Starting
+
+```bash
+# Check resources
+docker stats
+
+# Rebuild clean
+docker-compose -f docker-compose.prod.yml down -v
+docker system prune -f
+./build-production.sh
+docker-compose -f docker-compose.prod.yml up -d --scale app=10
+```
+
+### High Error Rate
+
+1. Check container health: `docker-compose ps`
+2. Check logs: `docker-compose logs app`
+3. Verify nginx config: `docker-compose exec nginx nginx -t`
+4. Check resource limits: `docker stats`
+
+## Tech Stack
+
+- **Runtime:** Bun 1.x
+- **Framework:** Next.js 15.5
+- **Language:** TypeScript 5.x
+- **Styling:** Tailwind CSS v4, daisyUI 5.x
+- **Deployment:** Docker + Docker Compose
+- **Load Balancer:** Nginx Alpine
+- **Testing:** Custom bash scripts, curl
+
+## Performance Tips
+
+1. **Use build script** - Ensures consistent build ID
+2. **Set resource limits** - Prevents memory issues
+3. **Monitor stats** - Watch `docker stats` during load
+4. **Scale horizontally** - Add more containers, not bigger ones
+5. **Test regularly** - Run load tests before deployments
+
+## License
+
+MIT
+
+## Contributing
+
+Production-ready setup. Fork, test, improve, PR.
+
+---
+
+**Built with senior engineer principles:**
+
+- Clean, maintainable code
+- No overengineering
+- Production patterns
+- Comprehensive testing
+- Battle-tested at scale
+
+**Ready to deploy?**
+
+```bash
+./build-production.sh
+docker-compose -f docker-compose.prod.yml up -d --scale app=10
+./stress-test.sh
+```
+
+🚀 **Production ready!**

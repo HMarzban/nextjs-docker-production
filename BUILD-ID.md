@@ -63,6 +63,7 @@ Allows passing build ID from environment or uses defaults.
 ```
 
 Automatically:
+
 - Detects git hash (if available)
 - Generates consistent build ID
 - Exports to environment
@@ -186,6 +187,7 @@ echo "Deployed Build ID: $BUILD_ID"
 **Cause:** Built separately or without consistent BUILD_ID
 
 **Solution:**
+
 ```bash
 # Stop everything
 docker-compose -f docker-compose.prod.yml down
@@ -203,16 +205,19 @@ docker-compose -f docker-compose.prod.yml up -d --scale app=10
 ### Issue: Build ID Not Being Used
 
 **Check 1: Verify next.config.mjs has generateBuildId**
+
 ```bash
 grep -A 3 "generateBuildId" next.config.mjs
 ```
 
 **Check 2: Verify Dockerfile has ARG**
+
 ```bash
 grep -A 2 "ARG BUILD_ID" Dockerfile.bun
 ```
 
 **Check 3: Verify it's being passed**
+
 ```bash
 grep "BUILD_ID" docker-compose.prod.yml
 ```
@@ -220,6 +225,7 @@ grep "BUILD_ID" docker-compose.prod.yml
 ### Issue: Git Hash Not Found
 
 This is fine! The script falls back to timestamp:
+
 ```bash
 BUILD_ID="build-20241021_143022"
 ```
@@ -241,4 +247,3 @@ BUILD_ID="build-20241021_143022"
 ✅ **CI/CD Ready** - Works in automated pipelines  
 
 Your setup now follows Next.js production best practices for horizontally scaled deployments! 🚀
-
