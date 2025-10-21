@@ -466,7 +466,7 @@ collect_metrics() {
     
     for container in "${containers[@]}"; do
         if docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null | grep -q "true"; then
-            ((healthy++))
+            healthy=$((healthy + 1))
         fi
     done
     
