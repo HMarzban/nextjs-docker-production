@@ -1,25 +1,25 @@
 # Docker Production Setup
 
-Production-ready Docker configuration with Bun runtime.
+Production-ready Docker configuration with Bun runtime and Nginx load balancer.
 
 ## Quick Start
 
 ```bash
-# Development
-docker-compose up --build
+# Build with consistent build ID
+make build
 
-# Production (single instance)
-docker-compose -f docker-compose.yml up -d
+# Start production (10 instances)
+make rebuild
 
-# Production (scaled with nginx)
-docker-compose -f docker-compose.prod.yml up -d --scale app=3
+# Scale to custom number
+make scale N=5
 ```
 
 ## Architecture
 
-- **Dockerfile.bun**: Multi-stage build optimized for Bun
-- **docker-compose.yml**: Single instance setup
-- **docker-compose.prod.yml**: Multi-instance with nginx load balancer
+- **Dockerfile.bun**: Multi-stage build optimized for Bun runtime
+- **docker-compose.prod.yml**: Production setup with Nginx load balancer
+- **nginx.conf**: Load balancer configuration with health checks
 
 ## Features
 
@@ -34,16 +34,27 @@ docker-compose -f docker-compose.prod.yml up -d --scale app=3
 
 ## Production Deployment
 
-### Single Instance
+### Build and Deploy
 
 ```bash
-docker-compose up -d --build
+# Build with consistent build ID
+make build
+
+# Deploy with 10 instances
+make rebuild
+
+# Or start without rebuilding
+make up
 ```
 
-### Scaled with Load Balancer
+### Scaling
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d --scale app=3
+# Scale to specific number
+make scale N=5
+
+# Scale to 10 instances
+make scale N=10
 ```
 
 ### Environment Variables
@@ -60,57 +71,74 @@ NEXT_TELEMETRY_DISABLED=1
 
 ```bash
 # Check health
-docker-compose ps
+docker-compose -f docker-compose.prod.yml ps
 
 # View logs
-docker-compose logs -f app
+make logs
 
 # Resource usage
-docker stats nextjs-app
-```
+docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 
-## Scaling
-
-```bash
-# Scale to 5 instances
-docker-compose -f docker-compose.prod.yml up -d --scale app=5
-
-# Scale down to 2
-docker-compose -f docker-compose.prod.yml up -d --scale app=2
+# Check build ID consistency
+make check-build
 ```
 
 ## Resource Limits
 
-**Per Container:**
-
+**Per App Container:**
 - CPU: 0.5-2 cores
 - Memory: 256MB-1GB
 - Logs: 10MB × 3 files
 
-Adjust in `docker-compose.yml` under `deploy.resources`.
+**Nginx Container:**
+- CPU: 0.25-1 core
+- Memory: 128MB-256MB
+
+Adjust in `docker-compose.prod.yml` under `deploy.resources`.
 
 ## Troubleshooting
 
 ```bash
 # Rebuild from scratch
-docker-compose build --no-cache
+make build
 
 # Check container health
-docker inspect --format='{{json .State.Health}}' nextjs-app
+docker-compose -f docker-compose.prod.yml ps
+
+# Check build ID consistency
+make check-build
 
 # Shell into container
-docker-compose exec app sh
+docker-compose -f docker-compose.prod.yml exec app sh
+
+# Test load balancing
+make test-balancing
 ```
 
 ## Clean Up
 
 ```bash
-# Stop and remove
-docker-compose down
+# Stop containers
+make down
 
-# Remove with volumes
-docker-compose down -v
+# Stop and remove volumes
+make clean
 
 # Full cleanup
 docker system prune -a
 ```
+
+## Load Testing
+
+```bash
+# Standard load test
+make test-stress
+
+# Heavy load test
+make test-stress-heavy
+
+# Extreme load test
+make test-stress-extreme
+```
+
+See [LOAD-TEST.md](./LOAD-TEST.md) for details.

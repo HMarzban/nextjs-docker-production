@@ -1,57 +1,33 @@
-.PHONY: help build up down logs restart clean health stats scale
+.PHONY: help build up down logs scale rebuild check-build clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build the Docker image
-	docker-compose -f docker-compose.yml build --no-cache
-
-up: ## Start the container
-	docker-compose -f docker-compose.yml up -d
-
-down: ## Stop the container
-	docker-compose -f docker-compose.yml down
-
-logs: ## Tail container logs
-	docker-compose -f docker-compose.yml logs -f app
-
-restart: down up ## Restart the container
-
-health: ## Check container health
-	docker inspect --format='{{json .State.Health}}' nextjs-app | jq
-
-stats: ## Show resource usage
-	docker stats nextjs-app --no-stream
-
-clean: ## Clean up everything
-	docker-compose -f docker-compose.yml down -v
-	docker system prune -f
-
-# Production commands
-prod-build: ## Build production image with consistent build ID
+# Core commands
+build: ## Build production image with consistent build ID
 	./scripts/build-production.sh
 
-prod-up: ## Start production with scaling
+up: ## Start production containers
 	docker-compose -f docker-compose.prod.yml up -d
 
-prod-down: ## Stop production
+down: ## Stop production containers
 	docker-compose -f docker-compose.prod.yml down
 
-prod-scale: ## Scale to N instances (make prod-scale N=5)
-	docker-compose -f docker-compose.prod.yml up -d --scale app=$(N)
-
-prod-logs: ## View production logs
+logs: ## View container logs
 	docker-compose -f docker-compose.prod.yml logs -f
 
-prod-rebuild: ## Rebuild and restart production
+scale: ## Scale to N instances (make scale N=10)
+	docker-compose -f docker-compose.prod.yml up -d --scale app=$(N)
+
+rebuild: ## Rebuild and restart with 10 instances
 	./scripts/build-production.sh && docker-compose -f docker-compose.prod.yml up -d --scale app=10
 
-prod-check-build: ## Check build ID consistency across all containers
+check-build: ## Check build ID consistency across containers
 	./scripts/check-build-id.sh
 
-# Quick deploy
-deploy: ## Quick rebuild and deploy
-	docker-compose build && docker-compose up -d
+clean: ## Stop containers and clean up
+	docker-compose -f docker-compose.prod.yml down -v
+	docker system prune -f
 
 # Testing
 test-health: ## Test health endpoint
