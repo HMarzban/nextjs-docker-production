@@ -3,7 +3,7 @@
 # Production Load Test Suite
 # Clean, professional, and effective stress testing
 
-set -euo pipefail
+set -eo pipefail
 
 # Ensure we're using bash 4+ for associative arrays
 if [ "${BASH_VERSINFO:-0}" -lt 4 ]; then
@@ -218,10 +218,15 @@ test_homepage_concurrent() {
     
     rm -rf "$temp_dir"
     
-    # Calculate metrics
-    local avg_time=$(echo "scale=3; $total_response_time / $success" | bc)
-    local rps=$(echo "scale=2; $success / $total_time" | bc)
-    local success_rate=$(echo "scale=1; $success * 100 / $CONCURRENT_REQUESTS" | bc)
+    # Calculate metrics with zero-division protection
+    if [ $success -gt 0 ]; then
+        local avg_time=$(echo "scale=3; $total_response_time / $success" | bc)
+        local rps=$(echo "scale=2; $success / $total_time" | bc)
+    else
+        local avg_time="N/A"
+        local rps="0"
+    fi
+    local success_rate=$(echo "scale=1; $success * 100 / $CONCURRENT_REQUESTS" | bc 2>/dev/null || echo "0")
     
     # Store results
     TEST1_RESULTS[success_rate]="${success_rate}%"
@@ -283,9 +288,14 @@ test_api_burst() {
         fi
     done
     
-    local avg_time=$(echo "scale=3; $sample_time / $sample_success" | bc)
-    local estimated_rps=$(echo "scale=0; $TOTAL_REQUESTS / $total_time" | bc)
-    local success_rate=$(echo "scale=1; $sample_success * 100 / $sample_total" | bc)
+    # Calculate with zero-division protection
+    if [ $sample_success -gt 0 ]; then
+        local avg_time=$(echo "scale=3; $sample_time / $sample_success" | bc)
+    else
+        local avg_time="N/A"
+    fi
+    local estimated_rps=$(echo "scale=0; $TOTAL_REQUESTS / $total_time" | bc 2>/dev/null || echo "0")
+    local success_rate=$(echo "scale=1; $sample_success * 100 / $sample_total" | bc 2>/dev/null || echo "0")
     
     # Store results
     TEST2_RESULTS[success_rate]="${success_rate}% (sampled)"
