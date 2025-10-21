@@ -124,6 +124,7 @@ make prod-down          # Stop services
 make prod-scale N=10    # Scale to N instances
 make prod-logs          # View logs
 make prod-rebuild       # Rebuild and restart
+make prod-check-build   # Verify build ID consistency
 
 # Testing
 make test-stress        # Standard load test

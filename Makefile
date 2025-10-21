@@ -46,6 +46,9 @@ prod-logs: ## View production logs
 prod-rebuild: ## Rebuild and restart production
 	./scripts/build-production.sh && docker-compose -f docker-compose.prod.yml up -d --scale app=10
 
+prod-check-build: ## Check build ID consistency across all containers
+	./scripts/check-build-id.sh
+
 # Quick deploy
 deploy: ## Quick rebuild and deploy
 	docker-compose build && docker-compose up -d
