@@ -178,6 +178,7 @@ test_homepage_concurrent() {
     local temp_dir=$(mktemp -d)
     local success=0
     local fail=0
+    local total_response_time=0
     
     echo "  Testing ${CONCURRENT_REQUESTS} concurrent requests..."
     
@@ -203,15 +204,14 @@ test_homepage_concurrent() {
     local total_time=$(echo "$end_time - $start_time" | bc)
     
     # Collect results
-    local total_response_time=0
     for i in $(seq 1 $CONCURRENT_REQUESTS); do
         if [ -f "${temp_dir}/${i}.txt" ]; then
             IFS=',' read -r code time_total < "${temp_dir}/${i}.txt"
-            if [ "$code" -eq 200 ]; then
-                ((success++))
+            if [ ! -z "$code" ] && [ "$code" -eq 200 ] 2>/dev/null; then
+                success=$((success + 1))
                 total_response_time=$(echo "$total_response_time + $time_total" | bc)
             else
-                ((fail++))
+                fail=$((fail + 1))
             fi
         fi
     done
@@ -282,8 +282,8 @@ test_api_burst() {
     for i in $(seq 1 $sample_total); do
         result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
         IFS=',' read -r code time_total <<< "$result"
-        if [ "$code" -eq 200 ]; then
-            ((sample_success++))
+        if [ ! -z "$code" ] && [ "$code" -eq 200 ] 2>/dev/null; then
+            sample_success=$((sample_success + 1))
             sample_time=$(echo "$sample_time + $time_total" | bc)
         fi
     done
