@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build && bun run postbuild",
+    "postbuild": "cp -r .next/static .next/standalone/.next/ && cp -r src/public .next/standalone/",
     "start": "bun .next/standalone/server.js",
     "type-check": "tsc --noEmit"
   },
