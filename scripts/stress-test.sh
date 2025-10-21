@@ -1,9 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Production Load Test Suite
 # Clean, professional, and effective stress testing
 
 set -euo pipefail
+
+# Ensure we're using bash 4+ for associative arrays
+if [ "${BASH_VERSINFO:-0}" -lt 4 ]; then
+    echo "Error: This script requires Bash 4.0 or higher"
+    echo "Your version: $BASH_VERSION"
+    echo ""
+    echo "On macOS, install with: brew install bash"
+    echo "Then run with: /usr/local/bin/bash $0"
+    exit 1
+fi
 
 # Colors
 RED='\033[0;31m'

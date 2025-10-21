@@ -64,13 +64,13 @@ test-balancing: ## Test load balancing
 	./scripts/test-load-balancing.sh
 
 test-stress: ## Run heavy load test with 10 instances
-	./scripts/stress-test.sh 10 100 10000 60
+	bash ./scripts/stress-test.sh 10 100 10000 60
 
 test-stress-heavy: ## Run HEAVY stress test (10 instances, 200 concurrent, 20k requests, 120s sustained)
-	./scripts/stress-test.sh 10 200 20000 120
+	bash ./scripts/stress-test.sh 10 200 20000 120
 
 test-stress-extreme: ## Run EXTREME stress test (10 instances, 500 concurrent, 50k requests, 300s sustained)
-	./scripts/stress-test.sh 10 500 50000 300
+	bash ./scripts/stress-test.sh 10 500 50000 300
 
 test-all: ## Run all tests
 	./scripts/test-load-balancing.sh && ./scripts/test-container-distribution.sh
