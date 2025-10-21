@@ -60,9 +60,8 @@ make test-stress              # Standard: 10k requests, 60s
 make test-stress-heavy        # Heavy: 20k requests, 120s
 make test-stress-extreme      # Extreme: 50k requests, 300s
 
-# Generate HTML report
-./scripts/generate-report.sh
-open ./load-test-results/report.html
+# Run load tests
+./scripts/stress-test.sh
 ```
 
 **What gets tested:**
@@ -103,7 +102,6 @@ open ./load-test-results/report.html
 │   ├── build-production.sh   # Build with consistent ID
 │   ├── stress-test.sh        # Load testing engine
 │   ├── run-full-test.sh      # Full test automation
-│   ├── generate-report.sh    # HTML report generator
 │   ├── test-load-balancing.sh
 │   ├── test-container-distribution.sh
 │   └── generate-icons.js     # PWA icon generator
