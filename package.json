@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "bun .next/standalone/server.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -9,7 +9,7 @@ const nextConfig = {
 
   // Use src directory for pages and components
   // This keeps the root directory clean
-  pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
+  pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
 
   // Consistent build ID for horizontal scaling
   // Ensures all containers serve the same version
