@@ -1,13 +1,13 @@
 # Next.js Production Stack
 
-Production-ready Next.js application with Docker, horizontal scaling, Nginx load balancing, and comprehensive testing.
+Production-ready Next.js application optimized for Docker and Bun runtime. Features horizontal scaling, Nginx load balancing, and comprehensive testing.
 
 ## 🚀 Features
 
 - **Next.js 15.5** - Latest with Turbopack and React 19
 - **TypeScript** - Full type safety with strict mode
-- **Bun Runtime** - Fast package manager and runtime
-- **Docker** - Multi-stage optimized builds with Alpine
+- **Bun Runtime** - Optimized for Bun with fast package management and runtime
+- **Docker Optimized** - Multi-stage builds with Alpine, optimized layers, and production-ready configuration
 - **Horizontal Scaling** - Tested with 10+ instances
 - **Nginx Load Balancer** - Production-grade reverse proxy
 - **PWA Support** - Offline mode, installable, auto-updates
@@ -150,6 +150,15 @@ make test-all              # Run all tests
 
 ## 🔧 Configuration
 
+### Docker & Bun Optimization
+
+This project is optimized for Docker and Bun runtime:
+
+- **Docker**: Multi-stage builds with layer caching, Alpine-based images, and standalone Next.js output
+- **Bun**: Native Bun runtime support with optimized Dockerfile (`Dockerfile.bun`) for faster builds and smaller images
+- **Build Optimization**: Dependency caching, consistent build IDs for scaling, and health checks
+- **Production Ready**: Non-root user, resource limits, and structured logging
+
 ### Environment Variables
 
 Create `.env.local` (optional):
@@ -278,6 +287,21 @@ make test-stress-extreme      # 50k requests, 500 concurrent, 300s
 - Container health & distribution
 - Response times & throughput
 
+## 🔄 CI/CD
+
+GitHub Actions workflow (`/.github/workflows/ci.yml`) includes:
+
+- **Lint & Type Check** - Runs ESLint, TypeScript checking, and Prettier validation using Bun
+- **Docker Build** - Builds optimized Docker image with Bun runtime, uses build cache
+- **Docker Compose Test** - Tests full stack with 2 scaled instances, health checks, and API tests
+
+**Optimized for:**
+
+- Bun runtime (fast installs and builds)
+- Docker layer caching (faster CI builds)
+- Multi-stage builds (smaller images)
+- Consistent build IDs (for scaling)
+
 ## 📊 Monitoring
 
 ### Health Checks
@@ -360,14 +384,15 @@ Detailed guides available in `docs/`:
 
 ## 🎯 Tech Stack
 
-- **Runtime:** Bun 1.x
+- **Runtime:** Bun 1.x (optimized for Docker)
 - **Framework:** Next.js 15.5
 - **Language:** TypeScript 5.x
 - **Styling:** Tailwind CSS v4, daisyUI 5.x
 - **Validation:** Zod 3.x
-- **Deployment:** Docker + Docker Compose
+- **Deployment:** Docker + Docker Compose (optimized multi-stage builds)
 - **Load Balancer:** Nginx Alpine
 - **PWA:** @ducanh2912/next-pwa
+- **CI/CD:** GitHub Actions (Docker & Bun optimized)
 
 ## 🤝 Contributing
 
