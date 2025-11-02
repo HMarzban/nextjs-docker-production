@@ -1,6 +1,6 @@
 # Next.js Production Stack
 
-Production-ready Next.js application with Docker, horizontal scaling, Nginx load balancing, and comprehensive testing. Built with modern best practices and battle-tested configurations.
+Production-ready Next.js application with Docker, horizontal scaling, Nginx load balancing, and comprehensive testing.
 
 ## 🚀 Features
 
@@ -50,7 +50,7 @@ curl http://localhost:3009/health
 
 ## 📁 Project Structure
 
-```
+```text
 .
 ├── src/
 │   ├── lib/                    # Core utilities
@@ -77,7 +77,7 @@ curl http://localhost:3009/health
 
 ## 🛠️ Commands
 
-### Development
+### Development Commands
 
 ```bash
 bun dev              # Start dev server with Turbopack
@@ -116,7 +116,7 @@ make test-all              # Run all tests
 
 ### Horizontal Scaling
 
-```
+```text
                     ┌─────────────┐
                     │   Nginx     │  Port 3009
                     │   Alpine    │  Load Balancer
@@ -369,30 +369,17 @@ Detailed guides available in `docs/`:
 - **Load Balancer:** Nginx Alpine
 - **PWA:** @ducanh2912/next-pwa
 
+## 🤝 Contributing
+
+Contributions welcome. Fork, make changes, test, and submit a PR.
+
+**Guidelines:**
+
+- Follow existing code style (ESLint + Prettier)
+- Add tests for new features
+- Update documentation as needed
+- Keep commits focused and meaningful
+
 ## 📝 License
 
 MIT
-
-## 🤝 Contributing
-
-Production-ready setup. Fork, test, improve, PR.
-
----
-
-**Built with senior engineer principles:**
-
-- Clean, maintainable code
-- No overengineering
-- Production patterns
-- Comprehensive testing
-- Battle-tested at scale
-
-**Ready to deploy?**
-
-```bash
-make build
-make rebuild
-make test-stress
-```
-
-🚀 **Production ready!**
