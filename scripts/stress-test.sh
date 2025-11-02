@@ -69,11 +69,15 @@ show_progress() {
     local width=50
     local percentage=$((current * 100 / total))
     local filled=$((width * current / total))
-    
-    printf "\r  ["
-    printf "%${filled}s" | tr ' ' '█'
-    printf "%$((width - filled))s" | tr ' ' '░'
-    printf "] %3d%% (%d/%d)" $percentage $current $total
+
+    # Build filled portion
+    local filled_bar=$(printf "%${filled}s" | tr ' ' '█')
+    # Build empty portion
+    local empty_width=$((width - filled))
+    local empty_bar=$(printf "%${empty_width}s" | tr ' ' '░')
+
+    # Print on same line: \r returns to start, \033[K clears to end of line
+    printf "\r  [%s%s] %3d%% (%d/%d)\033[K" "$filled_bar" "$empty_bar" $percentage $current $total
 }
 
 spinner() {
@@ -103,9 +107,9 @@ setup() {
     echo "║                                                            ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
-    
+
     mkdir -p "$RESULTS_DIR"
-    
+
     echo -e "${CYAN}Configuration:${NC}"
     print_result "Target URL" "$BASE_URL"
     print_result "App Instances" "$TARGET_INSTANCES"
@@ -117,35 +121,35 @@ setup() {
 
 scale_containers() {
     print_header "Scaling Containers"
-    
+
     echo -ne "  Scaling to ${TARGET_INSTANCES} instances..."
     docker-compose -f docker-compose.prod.yml up -d --scale app=${TARGET_INSTANCES} --no-recreate >/dev/null 2>&1
     echo -e "\r  ${GREEN}✓${NC} Scaled to ${TARGET_INSTANCES} instances"
-    
+
     echo -n "  Waiting for containers to be healthy"
     local max_wait=60
     local elapsed=0
-    
+
     while [ $elapsed -lt $max_wait ]; do
         local healthy=$(docker-compose -f docker-compose.prod.yml ps app 2>/dev/null | grep -c "healthy\|Up" || echo "0")
-        
+
         if [ "$healthy" -ge "$TARGET_INSTANCES" ]; then
             echo -e "\r  ${GREEN}✓${NC} All ${TARGET_INSTANCES} containers healthy          "
             sleep 2
             return 0
         fi
-        
+
         printf "."
         sleep 2
         ((elapsed+=2))
     done
-    
+
     echo -e "\r  ${YELLOW}⚠${NC} Timeout - proceeding with available containers"
 }
 
 verify_setup() {
     print_header "Pre-flight Checks"
-    
+
     # Check nginx
     if curl -s -o /dev/null -w "%{http_code}" -m 5 "${BASE_URL}/health" | grep -q "200"; then
         print_success "Nginx responding"
@@ -153,7 +157,7 @@ verify_setup() {
         print_error "Nginx not responding"
         exit 1
     fi
-    
+
     # Check app
     if curl -s -o /dev/null -w "%{http_code}" -m 10 "${BASE_URL}/api/hello" | grep -q "200"; then
         print_success "Next.js app responding"
@@ -161,7 +165,7 @@ verify_setup() {
         print_error "App not responding"
         exit 1
     fi
-    
+
     # Count instances
     local count=$(docker-compose -f docker-compose.prod.yml ps -q app | wc -l | tr -d ' ')
     print_success "$count containers active"
@@ -174,35 +178,37 @@ verify_setup() {
 
 test_homepage_concurrent() {
     print_header "Test 1: Concurrent Homepage Load"
-    
+
     local temp_dir=$(mktemp -d)
     local success=0
     local fail=0
     local total_response_time=0
-    
+
     echo "  Testing ${CONCURRENT_REQUESTS} concurrent requests..."
-    
+
     local start_time=$(date +%s.%N)
-    
-    # Launch concurrent requests
+
+    # Launch concurrent requests (suppress all output to avoid interfering with progress)
     for i in $(seq 1 $CONCURRENT_REQUESTS); do
         (
             result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 30 "${BASE_URL}/" 2>/dev/null || echo "000,0")
             echo "$result" > "${temp_dir}/${i}.txt"
-        ) &
-        
+        ) >/dev/null 2>&1 &
+
+        # Update progress every 10 requests (only on main thread)
         if [ $((i % 10)) -eq 0 ]; then
             show_progress $i $CONCURRENT_REQUESTS
         fi
     done
-    
+
     wait
+    # Show final progress on clean line
     show_progress $CONCURRENT_REQUESTS $CONCURRENT_REQUESTS
     echo ""
-    
+
     local end_time=$(date +%s.%N)
     local total_time=$(echo "$end_time - $start_time" | bc)
-    
+
     # Collect results
     for i in $(seq 1 $CONCURRENT_REQUESTS); do
         if [ -f "${temp_dir}/${i}.txt" ]; then
@@ -215,9 +221,9 @@ test_homepage_concurrent() {
             fi
         fi
     done
-    
+
     rm -rf "$temp_dir"
-    
+
     # Calculate metrics with zero-division protection
     if [ $success -gt 0 ]; then
         local avg_time=$(echo "scale=3; $total_response_time / $success" | bc)
@@ -227,7 +233,7 @@ test_homepage_concurrent() {
         local rps="0"
     fi
     local success_rate=$(echo "scale=1; $success * 100 / $CONCURRENT_REQUESTS" | bc 2>/dev/null || echo "0")
-    
+
     # Store results
     TEST1_RESULTS[success_rate]="${success_rate}%"
     TEST1_RESULTS[success]="$success"
@@ -236,7 +242,7 @@ test_homepage_concurrent() {
     TEST1_RESULTS[avg_time]="${avg_time}s"
     TEST1_RESULTS[rps]="${rps} req/s"
     TEST1_RESULTS[total_time]="${total_time}s"
-    
+
     echo ""
     print_result "Success Rate" "${success_rate}% (${success}/${CONCURRENT_REQUESTS})"
     print_result "Avg Response Time" "${avg_time}s"
@@ -246,86 +252,99 @@ test_homepage_concurrent() {
 
 test_api_burst() {
     print_header "Test 2: API Burst Load"
-    
+
     echo "  Sending ${TOTAL_REQUESTS} API requests..."
-    
-    local success=0
-    local fail=0
+
     local batch_size=100
-    local total_time=0
     local start_time=$(date +%s.%N)
-    
+    local temp_file=$(mktemp)
+
+    # Send all requests and capture results
     for batch_start in $(seq 1 $batch_size $TOTAL_REQUESTS); do
         local batch_end=$((batch_start + batch_size - 1))
         [ $batch_end -gt $TOTAL_REQUESTS ] && batch_end=$TOTAL_REQUESTS
-        
+
+        # Launch batch and capture HTTP codes + response times
         for i in $(seq $batch_start $batch_end); do
-            curl -s -o /dev/null -m 10 "${BASE_URL}/api/hello" >/dev/null 2>&1 &
+            (
+                result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 10 "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
+                echo "$result" >> "$temp_file"
+            ) >/dev/null 2>&1 &
         done
-        
-        # Collect batch results
+
+        # Wait for batch to complete
         wait
-        
+
+        # Update progress after batch completes
         show_progress $batch_end $TOTAL_REQUESTS
     done
-    
+
     echo ""
-    
+
     local end_time=$(date +%s.%N)
-    total_time=$(echo "$end_time - $start_time" | bc)
-    
-    # Sample test for accuracy
-    local sample_success=0
-    local sample_total=100
-    local sample_time=0
-    
-    for i in $(seq 1 $sample_total); do
-        result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
-        IFS=',' read -r code time_total <<< "$result"
+    local total_time=$(echo "$end_time - $start_time" | bc)
+
+    # Analyze all results (not just a sample)
+    local success=0
+    local fail=0
+    local total_response_time=0
+
+    while IFS=',' read -r code time_total; do
         if [ ! -z "$code" ] && [ "$code" -eq 200 ] 2>/dev/null; then
-            sample_success=$((sample_success + 1))
-            sample_time=$(echo "$sample_time + $time_total" | bc)
+            success=$((success + 1))
+            total_response_time=$(echo "$total_response_time + $time_total" | bc)
+        else
+            fail=$((fail + 1))
         fi
-    done
-    
-    # Calculate with zero-division protection
-    if [ $sample_success -gt 0 ]; then
-        local avg_time=$(echo "scale=3; $sample_time / $sample_success" | bc)
+    done < "$temp_file"
+
+    local total_requests=$((success + fail))
+
+    # Calculate metrics with zero-division protection
+    if [ $success -gt 0 ]; then
+        local avg_time=$(echo "scale=3; $total_response_time / $success" | bc)
+        local rps=$(echo "scale=2; $success / $total_time" | bc)
     else
         local avg_time="N/A"
+        local rps="0"
     fi
-    local estimated_rps=$(echo "scale=0; $TOTAL_REQUESTS / $total_time" | bc 2>/dev/null || echo "0")
-    local success_rate=$(echo "scale=1; $sample_success * 100 / $sample_total" | bc 2>/dev/null || echo "0")
-    
+
+    local success_rate=$(echo "scale=1; $success * 100 / $total_requests" | bc 2>/dev/null || echo "0")
+
+    rm -f "$temp_file"
+
     # Store results
-    TEST2_RESULTS[success_rate]="${success_rate}% (sampled)"
-    TEST2_RESULTS[total]="$TOTAL_REQUESTS"
+    TEST2_RESULTS[success_rate]="${success_rate}%"
+    TEST2_RESULTS[success]="$success"
+    TEST2_RESULTS[fail]="$fail"
+    TEST2_RESULTS[total]="$total_requests"
     TEST2_RESULTS[avg_time]="${avg_time}s"
-    TEST2_RESULTS[rps]="${estimated_rps} req/s"
+    TEST2_RESULTS[rps]="${rps} req/s"
     TEST2_RESULTS[total_time]="${total_time}s"
-    
+
     echo ""
-    print_result "Success Rate" "${success_rate}% (sampled)"
+    print_result "Success Rate" "${success_rate}% (${success}/${total_requests})"
+    print_result "Failed Requests" "$fail"
     print_result "Avg Response Time" "${avg_time}s"
-    print_result "Est. Throughput" "${estimated_rps} req/s"
+    print_result "Throughput" "${rps} req/s"
     print_result "Total Time" "${total_time}s"
 }
 
 test_sustained_load() {
     print_header "Test 3: Sustained Load (${TEST_DURATION}s)"
-    
+
     echo "  Running continuous load test..."
-    
+
     # Cooldown period after burst test
     sleep 2
-    
+
     local end_time=$(($(date +%s) + TEST_DURATION))
     local success=0
     local fail=0
     local total_time=0
     local request_count=0
     local temp_file=$(mktemp)
-    
+
     while [ $(date +%s) -lt $end_time ]; do
         # Send batch of 10 requests in parallel (reduced from 20)
         for i in $(seq 1 10); do
@@ -334,27 +353,27 @@ test_sustained_load() {
                 echo "$result" >> "$temp_file"
             ) &
         done
-        
+
         wait
-        
+
         local elapsed=$(($(date +%s) - (end_time - TEST_DURATION)))
-        
+
         # Count current results
         local current_success=$(grep -c "^200," "$temp_file" 2>/dev/null || echo "0")
         local current_total=$(wc -l < "$temp_file" 2>/dev/null | tr -d ' ')
-        
+
         printf "\r  [%3ds/%3ds] Requests: %5d | Success: %5d | Errors: %3d" \
             $elapsed $TEST_DURATION $current_total $current_success $((current_total - current_success))
-        
+
         sleep 1
     done
-    
+
     echo ""
-    
+
     # Calculate final metrics
     success=$(grep -c "^200," "$temp_file" 2>/dev/null || echo "0")
     request_count=$(wc -l < "$temp_file" 2>/dev/null | tr -d ' ')
-    
+
     # Calculate average time from successful requests
     if [ $success -gt 0 ]; then
         total_time=$(grep "^200," "$temp_file" | cut -d',' -f2 | awk '{sum+=$1} END {print sum}')
@@ -364,11 +383,11 @@ test_sustained_load() {
         local avg_time="N/A"
         local rps="0"
     fi
-    
+
     local error_rate=$(echo "scale=2; ($request_count - $success) * 100 / $request_count" | bc 2>/dev/null || echo "100")
-    
+
     rm -f "$temp_file"
-    
+
     # Store results
     TEST3_RESULTS[total]="$request_count"
     TEST3_RESULTS[success]="$success"
@@ -376,7 +395,7 @@ test_sustained_load() {
     TEST3_RESULTS[avg_time]="${avg_time}s"
     TEST3_RESULTS[rps]="${rps} req/s"
     TEST3_RESULTS[duration]="${TEST_DURATION}s"
-    
+
     echo ""
     print_result "Total Requests" "$request_count"
     print_result "Successful" "$success"
@@ -387,37 +406,37 @@ test_sustained_load() {
 
 test_mixed_workload() {
     print_header "Test 4: Mixed Workload"
-    
+
     echo "  Testing multiple endpoints (30s)..."
-    
+
     local duration=30
     local end_time=$(($(date +%s) + duration))
     local temp_file=$(mktemp)
-    
+
     # Run tests in background and collect results
     (
         local count=0
         while [ $(date +%s) -lt $end_time ]; do
             # Homepage
             curl -s -o /dev/null -w "homepage,%{http_code}\n" "${BASE_URL}/" 2>/dev/null >> "$temp_file" &
-            
+
             # API
             curl -s -o /dev/null -w "api,%{http_code}\n" "${BASE_URL}/api/hello" 2>/dev/null >> "$temp_file" &
-            
+
             # Weather
             curl -s -o /dev/null -w "weather,%{http_code}\n" "${BASE_URL}/weather" 2>/dev/null >> "$temp_file" &
-            
+
             count=$((count + 1))
             local elapsed=$(($(date +%s) - (end_time - duration)))
             printf "\r  [%2ds/%2ds] Sending mixed requests..." $elapsed $duration
-            
+
             sleep 0.3
         done
     )
-    
+
     wait
     echo ""
-    
+
     # Count results
     local homepage_success=$(grep "homepage,200" "$temp_file" 2>/dev/null | wc -l | tr -d ' ')
     local api_success=$(grep "api,200" "$temp_file" 2>/dev/null | wc -l | tr -d ' ')
@@ -425,9 +444,9 @@ test_mixed_workload() {
     local total_success=$((homepage_success + api_success + weather_success))
     local total_requests=$(wc -l < "$temp_file" | tr -d ' ')
     local success_rate=$(echo "scale=1; $total_success * 100 / $total_requests" | bc)
-    
+
     rm -f "$temp_file"
-    
+
     # Store results
     TEST4_RESULTS[homepage]="$homepage_success"
     TEST4_RESULTS[api]="$api_success"
@@ -435,7 +454,7 @@ test_mixed_workload() {
     TEST4_RESULTS[total]="$total_success / $total_requests"
     TEST4_RESULTS[success_rate]="${success_rate}%"
     TEST4_RESULTS[duration]="30s"
-    
+
     echo ""
     print_result "Homepage Requests" "$homepage_success"
     print_result "API Requests" "$api_success"
@@ -450,26 +469,26 @@ test_mixed_workload() {
 
 collect_metrics() {
     print_header "Container Metrics"
-    
+
     echo "  Collecting resource usage..."
     echo ""
-    
+
     # CPU & Memory
     docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" \
         $(docker-compose -f docker-compose.prod.yml ps -q) 2>/dev/null | head -12
-    
+
     echo ""
-    
+
     # Container health
     local containers=($(docker-compose -f docker-compose.prod.yml ps -q app 2>/dev/null))
     local healthy=0
-    
+
     for container in "${containers[@]}"; do
         if docker inspect --format='{{.State.Running}}' "$container" 2>/dev/null | grep -q "true"; then
             healthy=$((healthy + 1))
         fi
     done
-    
+
     echo ""
     print_result "Healthy Containers" "$healthy / ${#containers[@]}"
 }
@@ -480,7 +499,7 @@ collect_metrics() {
 
 generate_report() {
     print_header "Test Summary"
-    
+
     {
         echo "=========================================="
         echo "PRODUCTION LOAD TEST REPORT"
@@ -516,9 +535,10 @@ generate_report() {
         echo ""
         echo "Results:"
         echo "  Total Requests:      ${TEST2_RESULTS[total]}"
-        echo "  Success Rate:        ${TEST2_RESULTS[success_rate]}"
+        echo "  Success Rate:        ${TEST2_RESULTS[success_rate]} (${TEST2_RESULTS[success]}/${TEST2_RESULTS[total]})"
+        echo "  Failed Requests:     ${TEST2_RESULTS[fail]}"
         echo "  Avg Response Time:   ${TEST2_RESULTS[avg_time]}"
-        echo "  Est. Throughput:     ${TEST2_RESULTS[rps]}"
+        echo "  Throughput:          ${TEST2_RESULTS[rps]}"
         echo "  Total Time:          ${TEST2_RESULTS[total_time]}"
         echo ""
         echo "=========================================="
@@ -568,11 +588,11 @@ generate_report() {
         echo "  ✓ System ready for production"
         echo "=========================================="
     } | tee "$REPORT_FILE"
-    
+
     echo ""
     print_result "Report Saved" "$REPORT_FILE"
     print_result "Results Directory" "$RESULTS_DIR"
-    
+
     echo -e "\n${GREEN}✓ All tests completed successfully!${NC}\n"
 }
 
@@ -584,23 +604,23 @@ main() {
     setup
     scale_containers
     verify_setup
-    
+
     # Run all tests with cooldown periods
     test_homepage_concurrent
     sleep 2
-    
+
     test_api_burst
     sleep 3  # Longer cooldown after burst test
-    
+
     test_sustained_load
     sleep 2
-    
+
     test_mixed_workload
     sleep 2
-    
+
     # Collect metrics
     collect_metrics
-    
+
     # Generate report
     generate_report
 }

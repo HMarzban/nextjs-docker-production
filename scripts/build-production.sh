@@ -40,6 +40,12 @@ echo -e "${GREEN}  Git Hash: ${GIT_HASH}${NC}\n"
 
 echo -e "${CYAN}Next steps:${NC}"
 echo -e "  Start: ${YELLOW}docker-compose -f docker-compose.prod.yml up -d --scale app=10${NC}"
-echo -e "  Test:  ${YELLOW}./stress-test.sh${NC}"
-echo ""
+echo -e "  Test:  ${YELLOW}./scripts/stress-test.sh${NC}\n"
+
+echo -e "${CYAN}📍 Access your application:${NC}"
+echo -e "  ${GREEN}Website:${NC}    http://localhost:3009"
+echo -e "  ${GREEN}Health:${NC}     http://localhost:3009/health"
+echo -e "  ${GREEN}API:${NC}        http://localhost:3009/api/hello"
+echo -e "  ${GREEN}Weather:${NC}    http://localhost:3009/weather"
+echo -e ""
 

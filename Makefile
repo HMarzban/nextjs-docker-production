@@ -31,7 +31,7 @@ clean: ## Stop containers and clean up
 
 # Testing
 test-health: ## Test health endpoint
-	curl -f http://localhost:3000/api/hello || exit 1
+	curl -f http://localhost:3009/api/hello || exit 1
 
 test-distribution: ## Test container distribution
 	./scripts/test-container-distribution.sh

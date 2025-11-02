@@ -1,9 +1,10 @@
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-gray-900 via-gray-800 to-black text-white">
       <Head>
         <title>Next.js on Docker</title>
         <link rel="icon" href="/favicon.ico" />
@@ -57,7 +58,7 @@ export default function Home() {
           >
             <h3 className="text-2xl font-semibold mb-2">daisyUI &rarr;</h3>
             <p className="text-gray-400">
-              Beautiful Tailwind CSS components library we're using
+              Beautiful Tailwind CSS components library we&apos;re using
             </p>
           </a>
 
@@ -87,7 +88,15 @@ export default function Home() {
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
         >
-          Powered by <img src="/vercel.svg" alt="Vercel Logo" className="h-4" />
+          Powered by{" "}
+          <Image
+            src="/vercel.svg"
+            alt="Vercel Logo"
+            width={16}
+            height={16}
+            className="h-4"
+          />{" "}
+          1.2.0
         </a>
       </footer>
     </div>

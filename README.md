@@ -1,21 +1,27 @@
-# Next.js Production on Docker
+# Next.js Production Stack
 
-Production-ready Next.js app with TypeScript, Tailwind CSS v4, Bun runtime, Docker scaling, Nginx load balancing, and comprehensive load testing.
+Production-ready Next.js application with Docker, horizontal scaling, Nginx load balancing, and comprehensive testing. Built with modern best practices and battle-tested configurations.
 
-## Features
+## 🚀 Features
 
-- ✅ **Next.js 15.5** - Latest with Turbopack and React 19
-- ✅ **TypeScript** - Full type safety
-- ✅ **Tailwind CSS v4 + daisyUI** - Modern styling
-- ✅ **Bun Runtime** - Fast package manager and runtime
-- ✅ **Docker** - Multi-stage optimized builds
-- ✅ **Nginx Load Balancer** - Production-grade reverse proxy
-- ✅ **Horizontal Scaling** - Tested with 10+ instances
-- ✅ **Load Testing Suite** - Comprehensive performance testing
-- ✅ **PWA Support** - Offline mode, installable
-- ✅ **Production Ready** - Battle-tested configuration
+- **Next.js 15.5** - Latest with Turbopack and React 19
+- **TypeScript** - Full type safety with strict mode
+- **Bun Runtime** - Fast package manager and runtime
+- **Docker** - Multi-stage optimized builds with Alpine
+- **Horizontal Scaling** - Tested with 10+ instances
+- **Nginx Load Balancer** - Production-grade reverse proxy
+- **PWA Support** - Offline mode, installable, auto-updates
+- **Code Quality** - ESLint, Prettier, input validation
+- **Error Handling** - Structured logging and error responses
+- **Load Testing** - Comprehensive performance testing suite
 
-## Quick Start
+## 📋 Prerequisites
+
+- **Bun** >= 1.0 (or Node.js >= 18)
+- **Docker** >= 20.10
+- **Docker Compose** >= 2.4
+
+## 🏃 Quick Start
 
 ### Development
 
@@ -23,11 +29,7 @@ Production-ready Next.js app with TypeScript, Tailwind CSS v4, Bun runtime, Dock
 # Install dependencies
 bun install
 
-# Setup environment (optional - for weather page)
-cp .env.example .env.local
-# Add your OpenWeatherMap API key
-
-# Run dev server
+# Run development server
 bun dev
 ```
 
@@ -37,113 +39,93 @@ Visit <http://localhost:3000>
 
 ```bash
 # Build production image
-make prod-build
-# or: ./scripts/build-production.sh
+make build
 
 # Start with 10 instances
-docker-compose -f docker-compose.prod.yml up -d --scale app=10
+make rebuild
 
-# Verify
+# Verify deployment
 curl http://localhost:3009/health
 ```
 
-## Load Testing
-
-Test your scaled deployment:
-
-```bash
-# Run full test suite
-./scripts/run-full-test.sh
-
-# Or individual tests
-make test-stress              # Standard: 10k requests, 60s
-make test-stress-heavy        # Heavy: 20k requests, 120s
-make test-stress-extreme      # Extreme: 50k requests, 300s
-
-# Run load tests
-./scripts/stress-test.sh
-```
-
-**What gets tested:**
-
-- Homepage concurrent load (100-500 concurrent users)
-- API burst load (10k-50k requests)
-- Sustained load (60-300 seconds)
-- Mixed workload (multiple endpoints)
-
-**Metrics collected:**
-
-- Response time, TTFB, throughput
-- Success rate, error rate
-- CPU & memory per container
-- Container health & load distribution
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 .
-├── src/                        # Application source code
-│   ├── pages/                 # Next.js pages
-│   │   ├── _app.tsx          # App wrapper + PWA
-│   │   ├── index.tsx         # Homepage
-│   │   ├── weather.tsx       # Weather dashboard
-│   │   └── api/              # API routes
-│   ├── components/            # React components
-│   ├── styles/                # Tailwind CSS
-│   ├── public/                # Static assets
-│   ├── worker/                # Service worker (PWA)
-│   └── types/                 # TypeScript definitions
-├── docs/                      # Documentation
-│   ├── BUILD-ID.md           # Scaling guide
-│   ├── DOCKER.md             # Deployment guide
-│   ├── GITHUB-DEPLOY.md      # Git workflow
-│   └── LOAD-TEST.md          # Testing guide
-├── scripts/                   # Shell scripts
-│   ├── build-production.sh   # Build with consistent ID
-│   ├── stress-test.sh        # Load testing engine
-│   ├── run-full-test.sh      # Full test automation
-│   ├── test-load-balancing.sh
-│   ├── test-container-distribution.sh
-│   └── generate-icons.js     # PWA icon generator
-├── Dockerfile.bun             # Production Docker image
-├── docker-compose.prod.yml    # Production deployment
-├── nginx.conf                 # Load balancer config
-├── Makefile                   # Common commands
-└── README.md                  # This file
+├── src/
+│   ├── lib/                    # Core utilities
+│   │   ├── api-utils.ts       # Error handling, logging, validation
+│   │   ├── validation.ts      # Zod schemas
+│   │   ├── weather.ts         # Weather API utilities
+│   │   └── constants.ts        # App constants
+│   ├── pages/                  # Next.js pages
+│   │   ├── api/               # API routes
+│   │   │   ├── hello.ts      # Health check endpoint
+│   │   │   └── weather.ts    # Weather API
+│   │   ├── _app.tsx           # App wrapper + PWA
+│   │   ├── index.tsx          # Homepage
+│   │   └── weather.tsx        # Weather dashboard
+│   ├── components/             # React components
+│   └── styles/                 # Tailwind CSS
+├── scripts/                    # Build & test scripts
+├── docs/                       # Detailed documentation
+├── Dockerfile.bun              # Production Docker image
+├── docker-compose.prod.yml     # Production deployment
+├── nginx.conf                  # Load balancer config
+└── Makefile                    # Common commands
 ```
 
-## Make Commands
+## 🛠️ Commands
+
+### Development
 
 ```bash
-# Production
-make prod-build         # Build with consistent build ID
-make prod-up            # Start services
-make prod-down          # Stop services
-make prod-scale N=10    # Scale to N instances
-make prod-logs          # View logs
-make prod-rebuild       # Rebuild and restart
-make prod-check-build   # Verify build ID consistency
-
-# Testing
-make test-stress        # Standard load test
-make test-stress-heavy  # Heavy load test
-make test-stress-extreme # Extreme load test
+bun dev              # Start dev server with Turbopack
+bun run build         # Build for production
+bun run start         # Start production server
+bun run lint          # Run ESLint
+bun run lint:fix      # Fix linting issues
+bun run format        # Format code with Prettier
+bun run type-check    # TypeScript type checking
 ```
 
-## Architecture
+### Production (Makefile)
+
+```bash
+make build            # Build production image
+make up              # Start containers
+make down            # Stop containers
+make scale N=10      # Scale to N instances
+make rebuild         # Rebuild and restart (10 instances)
+make logs            # View container logs
+make check-build     # Verify build ID consistency
+make clean           # Stop and clean up
+```
+
+### Testing
+
+```bash
+make test-health            # Test health endpoint
+make test-stress            # Standard load test (10k requests)
+make test-stress-heavy      # Heavy load test (20k requests)
+make test-stress-extreme    # Extreme load test (50k requests)
+make test-all              # Run all tests
+```
+
+## 🏗️ Architecture
 
 ### Horizontal Scaling
 
 ```
                     ┌─────────────┐
-                    │   Nginx     │  (Port 3009)
-                    │   Alpine    │
+                    │   Nginx     │  Port 3009
+                    │   Alpine    │  Load Balancer
                     └──────┬──────┘
                            │
             ┌──────────────┼──────────────┐
             │              │              │
        ┌────▼───┐     ┌────▼───┐    ┌────▼───┐
-       │ App #1 │     │ App #2 │    │ App #10│
+       │ App #1 │     │ App #2 │    │ App #N │
        │  Bun   │     │  Bun   │    │  Bun   │
        └────────┘     └────────┘    └────────┘
             │              │              │
@@ -156,9 +138,7 @@ make test-stress-extreme # Extreme load test
 **Health Checks:** 30s intervals  
 **Resource Limits:** 1GB RAM, 2 CPUs per container  
 
-### Performance
-
-Expected with 10 instances:
+### Performance Targets
 
 | Metric | Target |
 |--------|--------|
@@ -168,30 +148,29 @@ Expected with 10 instances:
 | Success Rate | >99% |
 | Error Rate | <1% |
 
-## Configuration
+## 🔧 Configuration
 
 ### Environment Variables
 
 Create `.env.local` (optional):
 
 ```bash
-# OpenWeatherMap API Key (for weather page)
-OPENWEATHER_API_KEY=your_api_key_here
+# Optional: For external API integrations
+NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
 ```
 
 ### Build ID (Important for Scaling)
 
-The app uses consistent build IDs to prevent version skew across containers:
+Consistent build IDs prevent version skew across containers:
 
 ```bash
 # Automatic (uses git hash or timestamp)
-./build-production.sh
+make build
 
 # Manual
 BUILD_ID="v1.2.3" docker-compose -f docker-compose.prod.yml build
 ```
-
-See [BUILD-ID.md](./BUILD-ID.md) for details.
 
 ### Nginx Configuration
 
@@ -203,96 +182,108 @@ Production-grade `nginx.conf` includes:
 - Gzip compression
 - Security headers
 - Docker DNS resolver
-- Async I/O
+- Async I/O for performance
 
-## Progressive Web App (PWA)
+## 💻 Code Quality
 
-The app is installable and works offline:
+### Features
 
-**Install:**
+- **ESLint** - Code linting with TypeScript support
+- **Prettier** - Consistent code formatting
+- **Zod Validation** - Type-safe input validation
+- **Error Handling** - Structured error responses
+- **Logging** - Contextual logging with timestamps
 
-- **Desktop:** Chrome/Edge - Click install icon in address bar
-- **Mobile:** Add to Home Screen
+### Usage Examples
+
+**Input Validation:**
+
+```typescript
+import { validate } from "../../lib/api-utils";
+import { weatherQuerySchema } from "../../lib/validation";
+
+const { city } = validate(weatherQuerySchema, req.query);
+```
+
+**Error Handling:**
+
+```typescript
+import { ApiError, withErrorHandler } from "../../lib/api-utils";
+
+async function handler(req, res) {
+  throw new ApiError("Not found", 404, "NOT_FOUND");
+}
+
+export default withErrorHandler(handler);
+```
+
+**Logging:**
+
+```typescript
+import { log } from "../../lib/api-utils";
+
+log.info("Request received", { city });
+log.error("API failed", error, { endpoint: "/api/weather" });
+```
+
+## 📱 Progressive Web App (PWA)
+
+Full PWA support with offline capabilities:
 
 **Features:**
 
 - 📱 Installable (mobile + desktop)
 - 🔌 Offline mode
-- 🔄 Background sync
-- 💾 Smart caching
+- 🔄 Smart caching strategies
+- ⚡ Auto-update prompts
+- 💾 Cache management
 
-**Test offline mode:**
+**Caching Strategies:**
+
+- **APIs** (`/api/*`): Network First (5 min cache)
+- **Images/Fonts**: Cache First (30 days)
+- **Next.js Static**: Cache First (1 year, immutable)
+- **Pages**: Stale While Revalidate
+
+**Testing:**
+
+1. Build production: `bun run build && bun run start`
+2. Open Chrome/Edge → Install icon in address bar
+3. Test offline: DevTools → Network → Offline
+4. Check Lighthouse PWA audit (should score 90+)
+
+## 🧪 Load Testing
+
+Comprehensive load testing suite:
 
 ```bash
-# 1. Open app in browser
-# 2. Open DevTools → Network → Throttling → Offline
-# 3. Reload page - should work offline
+# Standard test
+make test-stress              # 10k requests, 100 concurrent, 60s
+
+# Heavy test
+make test-stress-heavy        # 20k requests, 200 concurrent, 120s
+
+# Extreme test
+make test-stress-extreme      # 50k requests, 500 concurrent, 300s
+
+# Custom test
+./scripts/stress-test.sh <instances> <concurrent> <total> <duration>
 ```
 
-## Documentation
+**What gets tested:**
 
-- **[docs/DOCKER.md](./docs/DOCKER.md)** - Complete deployment guide
-- **[docs/BUILD-ID.md](./docs/BUILD-ID.md)** - Scaling and build IDs
-- **[docs/LOAD-TEST.md](./docs/LOAD-TEST.md)** - Testing documentation
-- **[docs/GITHUB-DEPLOY.md](./docs/GITHUB-DEPLOY.md)** - Push to GitHub
+- Concurrent load handling
+- API burst capacity
+- Sustained load performance
+- Container health & distribution
+- Response times & throughput
 
-## Common Tasks
+## 📊 Monitoring
 
-### Scale Deployment
-
-```bash
-# Scale to 5 instances
-docker-compose -f docker-compose.prod.yml up -d --scale app=5
-
-# Scale to 20 instances
-docker-compose -f docker-compose.prod.yml up -d --scale app=20
-```
-
-### Monitor Resources
+### Health Checks
 
 ```bash
-# Watch container stats
-docker stats
-
-# Check nginx status
-curl http://localhost:3009/nginx_status
-
-# View logs
-docker-compose -f docker-compose.prod.yml logs -f app
-```
-
-### Rebuild After Changes
-
-```bash
-# Rebuild with new build ID
-make prod-rebuild
-
-# Or manually
-docker-compose -f docker-compose.prod.yml down
-./scripts/build-production.sh
-docker-compose -f docker-compose.prod.yml up -d --scale app=10
-```
-
-### Run Load Tests
-
-```bash
-# Full automated test
-./scripts/run-full-test.sh
-
-# Custom test (instances, concurrent, total, duration)
-./scripts/stress-test.sh 15 300 30000 180
-
-# Quick validation
-./scripts/test-load-balancing.sh
-./scripts/test-container-distribution.sh
-```
-
-## Troubleshooting
-
-### Check Health
-
-```bash
-# Nginx
+# Nginx health
 curl http://localhost:3009/health
 
 # App API
@@ -302,18 +293,21 @@ curl http://localhost:3009/api/hello
 docker-compose -f docker-compose.prod.yml ps
 ```
 
-### View Logs
+### Resource Monitoring
 
 ```bash
-# All services
-docker-compose -f docker-compose.prod.yml logs -f
+# Container stats
+docker stats
 
-# App only
+# Nginx status
+curl http://localhost:3009/nginx_status
+
+# View logs
+make logs
 docker-compose -f docker-compose.prod.yml logs -f app
-
-# Nginx only
-docker-compose -f docker-compose.prod.yml logs -f nginx
 ```
+
+## 🔍 Troubleshooting
 
 ### Containers Not Starting
 
@@ -322,42 +316,64 @@ docker-compose -f docker-compose.prod.yml logs -f nginx
 docker stats
 
 # Rebuild clean
-docker-compose -f docker-compose.prod.yml down -v
-docker system prune -f
-./build-production.sh
-docker-compose -f docker-compose.prod.yml up -d --scale app=10
+make clean
+make build
+make rebuild
 ```
 
 ### High Error Rate
 
 1. Check container health: `docker-compose ps`
-2. Check logs: `docker-compose logs app`
+2. Check logs: `make logs`
 3. Verify nginx config: `docker-compose exec nginx nginx -t`
 4. Check resource limits: `docker stats`
 
-## Tech Stack
+### Build ID Mismatch
+
+```bash
+# Verify consistency
+make check-build
+
+# Rebuild with consistent ID
+make rebuild
+```
+
+## 📚 Documentation
+
+Detailed guides available in `docs/`:
+
+- **[DOCKER.md](./docs/DOCKER.md)** - Complete deployment guide
+- **[BUILD-ID.md](./docs/BUILD-ID.md)** - Scaling and build IDs
+- **[LOAD-TEST.md](./docs/LOAD-TEST.md)** - Load testing guide
+- **[PWA-NEXT-PWA.md](./docs/PWA-NEXT-PWA.md)** - PWA implementation
+- **[GITHUB-DEPLOY.md](./docs/GITHUB-DEPLOY.md)** - GitHub deployment
+
+## 🛡️ Production Best Practices
+
+1. **Consistent Build IDs** - Use `make build` for scaling
+2. **Resource Limits** - Set CPU/memory limits per container
+3. **Health Checks** - Monitor container health regularly
+4. **Horizontal Scaling** - Add more containers, not bigger ones
+5. **Load Testing** - Test before deployments
+6. **Monitoring** - Watch `docker stats` during load
+7. **Logging** - Structured logs for debugging
+
+## 🎯 Tech Stack
 
 - **Runtime:** Bun 1.x
 - **Framework:** Next.js 15.5
 - **Language:** TypeScript 5.x
 - **Styling:** Tailwind CSS v4, daisyUI 5.x
+- **Validation:** Zod 3.x
 - **Deployment:** Docker + Docker Compose
 - **Load Balancer:** Nginx Alpine
-- **Testing:** Custom bash scripts, curl
+- **PWA:** @ducanh2912/next-pwa
 
-## Performance Tips
-
-1. **Use build script** - Ensures consistent build ID
-2. **Set resource limits** - Prevents memory issues
-3. **Monitor stats** - Watch `docker stats` during load
-4. **Scale horizontally** - Add more containers, not bigger ones
-5. **Test regularly** - Run load tests before deployments
-
-## License
+## 📝 License
 
 MIT
 
-## Contributing
+## 🤝 Contributing
 
 Production-ready setup. Fork, test, improve, PR.
 
@@ -374,9 +390,9 @@ Production-ready setup. Fork, test, improve, PR.
 **Ready to deploy?**
 
 ```bash
-./scripts/build-production.sh
-docker-compose -f docker-compose.prod.yml up -d --scale app=10
-./scripts/stress-test.sh
+make build
+make rebuild
+make test-stress
 ```
 
 🚀 **Production ready!**

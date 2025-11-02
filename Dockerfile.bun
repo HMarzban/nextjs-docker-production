@@ -9,7 +9,7 @@ WORKDIR /app
 # Use wildcard to handle both bun.lockb and bun.lock
 COPY package.json bun.lock* ./
 # Install all dependencies including devDependencies (needed for build)
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --verbose
 
 # Build layer
 FROM base AS builder
@@ -47,6 +47,10 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/src/public ./public
+
+# Copy auto-generated PWA files (sw.js, workbox-*.js from root /public)
+COPY --from=builder --chown=nextjs:nodejs /app/public/sw.js ./public/sw.js
+COPY --from=builder --chown=nextjs:nodejs /app/public/workbox-*.js ./public/
 
 USER nextjs
 

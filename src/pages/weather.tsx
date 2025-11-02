@@ -12,6 +12,9 @@ import {
   WiDayHaze,
 } from "react-icons/wi";
 import { IoAddCircleOutline, IoCloseCircle } from "react-icons/io5";
+import { fetchWeatherData } from "@/lib/weather";
+import { DEFAULT_CITIES } from "@/lib/constants";
+import { log } from "@/lib/api-utils";
 
 interface WeatherData {
   name: string;
@@ -41,7 +44,7 @@ interface WeatherPageProps {
   error?: string;
 }
 
-const getWeatherIcon = (weatherId: number, main: string) => {
+const getWeatherIcon = (weatherId: number) => {
   if (weatherId >= 200 && weatherId < 300)
     return <WiThunderstorm className="text-6xl text-yellow-400" />;
   if (weatherId >= 300 && weatherId < 600)
@@ -67,19 +70,24 @@ export default function WeatherPage({
 
   const addCity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCity.trim()) return;
+    const city = newCity.trim();
+    if (!city) return;
 
     setLoading(true);
     setErrorMsg("");
 
     try {
-      const response = await axios.get(`/api/weather?city=${newCity}`);
+      const response = await axios.get(
+        `/api/weather?city=${encodeURIComponent(city)}`
+      );
       setCities([...cities, response.data]);
       setNewCity("");
     } catch (err) {
-      setErrorMsg(
-        `Could not find weather data for "${newCity}". Please try another city.`
-      );
+      const errorMessage =
+        axios.isAxiosError(err) && err.response?.data?.error?.message
+          ? err.response.data.error.message
+          : `Could not find weather data for "${city}". Please try another city.`;
+      setErrorMsg(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -217,12 +225,7 @@ export default function WeatherPage({
                           Feels like {Math.round(city.main.feels_like)}°C
                         </div>
                       </div>
-                      <div>
-                        {getWeatherIcon(
-                          city.weather[0].id,
-                          city.weather[0].main
-                        )}
-                      </div>
+                      <div>{getWeatherIcon(city.weather[0].id)}</div>
                     </div>
 
                     <div className="divider my-2"></div>
@@ -302,73 +305,41 @@ export default function WeatherPage({
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const defaultCities = ["Tehran", "London", "New York"];
-
   try {
-    // Fetch data directly using the API logic (avoid HTTP call to self)
-    const weatherPromises = defaultCities.map(async (city) => {
-      const geoResponse = await axios.get(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-          city
-        )}&count=1&language=en&format=json`
-      );
+    // Fetch data using shared utility function
+    const weatherPromises = DEFAULT_CITIES.map((city) =>
+      fetchWeatherData(city).catch((error) => {
+        log.warn("Failed to fetch weather", { city, error });
+        return null;
+      })
+    );
 
-      if (!geoResponse.data.results || geoResponse.data.results.length === 0) {
-        throw new Error(`City ${city} not found`);
-      }
+    const results = await Promise.all(weatherPromises);
+    const initialCities = results.filter(
+      (city): city is WeatherData => city !== null
+    );
 
-      const geoData = geoResponse.data.results[0];
-      const weatherResponse = await axios.get(
-        `https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m&timezone=auto`
-      );
-
-      const current = weatherResponse.data.current;
-      const weatherMap: Record<
-        number,
-        { id: number; main: string; description: string }
-      > = {
-        0: { id: 800, main: "Clear", description: "clear sky" },
-        1: { id: 800, main: "Clear", description: "mainly clear" },
-        2: { id: 801, main: "Clouds", description: "partly cloudy" },
-        3: { id: 803, main: "Clouds", description: "overcast" },
-        45: { id: 741, main: "Fog", description: "fog" },
-        61: { id: 500, main: "Rain", description: "slight rain" },
-        63: { id: 501, main: "Rain", description: "moderate rain" },
-        65: { id: 502, main: "Rain", description: "heavy rain" },
-        71: { id: 600, main: "Snow", description: "slight snow" },
-        95: { id: 200, main: "Thunderstorm", description: "thunderstorm" },
-      };
-
-      const weather = weatherMap[current.weather_code] || {
-        id: 800,
-        main: "Clear",
-        description: "clear sky",
-      };
-
+    if (initialCities.length === 0) {
+      log.error("Failed to fetch any weather data");
       return {
-        name: geoData.name,
-        sys: { country: geoData.country_code || "N/A" },
-        main: {
-          temp: current.temperature_2m,
-          feels_like: current.apparent_temperature,
-          humidity: current.relative_humidity_2m,
-          pressure: current.surface_pressure,
+        props: {
+          initialCities: [],
+          error:
+            "Failed to fetch initial weather data. Please check your internet connection.",
         },
-        weather: [weather],
-        wind: { speed: current.wind_speed_10m },
-        dt: Math.floor(new Date(current.time).getTime() / 1000),
       };
-    });
-
-    const initialCities = await Promise.all(weatherPromises);
+    }
 
     return {
       props: {
         initialCities,
+        ...(initialCities.length < DEFAULT_CITIES.length && {
+          error: `Warning: Could not load weather for all default cities. Loaded ${initialCities.length} of ${DEFAULT_CITIES.length}.`,
+        }),
       },
     };
   } catch (error) {
-    console.error("Error fetching weather data:", error);
+    log.error("Error in getServerSideProps", error);
     return {
       props: {
         initialCities: [],
