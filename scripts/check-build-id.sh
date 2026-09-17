@@ -14,12 +14,12 @@ echo -e "${CYAN}║   Build ID Verification                    ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════╝${NC}\n"
 
 # Get all running app containers
-CONTAINERS=($(docker-compose -f docker-compose.prod.yml ps -q app 2>/dev/null))
+CONTAINERS=($(docker compose -f docker-compose.prod.yml ps -q app 2>/dev/null))
 CONTAINER_COUNT=${#CONTAINERS[@]}
 
 if [ $CONTAINER_COUNT -eq 0 ]; then
     echo -e "${RED}❌ No app containers running!${NC}"
-    echo -e "${YELLOW}Start with: docker-compose -f docker-compose.prod.yml up -d --scale app=3${NC}"
+    echo -e "${YELLOW}Start with: docker compose -f docker-compose.prod.yml up -d --scale app=3${NC}"
     exit 1
 fi
 
@@ -76,10 +76,10 @@ elif [ $UNIQUE_IDS -gt 1 ]; then
     echo -e "  • Hard reloads\n"
     
     echo -e "${YELLOW}Fix:${NC}"
-    echo -e "  1. Stop all containers: ${BLUE}docker-compose -f docker-compose.prod.yml down${NC}"
+    echo -e "  1. Stop all containers: ${BLUE}docker compose -f docker-compose.prod.yml down${NC}"
     echo -e "  2. Remove old images:   ${BLUE}docker rmi nextjs-app:latest${NC}"
     echo -e "  3. Build fresh:         ${BLUE}./scripts/build-production.sh${NC}"
-    echo -e "  4. Start:               ${BLUE}docker-compose -f docker-compose.prod.yml up -d --scale app=10${NC}"
+    echo -e "  4. Start:               ${BLUE}docker compose -f docker-compose.prod.yml up -d --scale app=10${NC}"
 else
     echo -e "${RED}❌ No valid build IDs found${NC}"
 fi

@@ -4,6 +4,7 @@
 # Clean, professional, and effective stress testing
 
 set -eo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/load-thresholds.sh"
 
 # Ensure we're using bash 4+ for associative arrays
 if [ "${BASH_VERSINFO:-0}" -lt 4 ]; then
@@ -98,7 +99,7 @@ spinner() {
 # ============================================================================
 
 setup() {
-    clear
+    [ ! -t 1 ] || clear
     echo -e "${MAGENTA}"
     echo "╔════════════════════════════════════════════════════════════╗"
     echo "║                                                            ║"
@@ -123,7 +124,7 @@ scale_containers() {
     print_header "Scaling Containers"
 
     echo -ne "  Scaling to ${TARGET_INSTANCES} instances..."
-    docker-compose -f docker-compose.prod.yml up -d --scale app=${TARGET_INSTANCES} --no-recreate >/dev/null 2>&1
+    docker compose -f docker-compose.prod.yml up -d --scale app=${TARGET_INSTANCES} --no-recreate >/dev/null 2>&1
     echo -e "\r  ${GREEN}✓${NC} Scaled to ${TARGET_INSTANCES} instances"
 
     echo -n "  Waiting for containers to be healthy"
@@ -131,7 +132,12 @@ scale_containers() {
     local elapsed=0
 
     while [ $elapsed -lt $max_wait ]; do
-        local healthy=$(docker-compose -f docker-compose.prod.yml ps app 2>/dev/null | grep -c "healthy\|Up" || echo "0")
+        local healthy=0 container
+        for container in $(docker compose -f docker-compose.prod.yml ps -q app); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' "$container")" = healthy ]; then
+                healthy=$((healthy + 1))
+            fi
+        done
 
         if [ "$healthy" -ge "$TARGET_INSTANCES" ]; then
             echo -e "\r  ${GREEN}✓${NC} All ${TARGET_INSTANCES} containers healthy          "
@@ -144,7 +150,8 @@ scale_containers() {
         ((elapsed+=2))
     done
 
-    echo -e "\r  ${YELLOW}⚠${NC} Timeout - proceeding with available containers"
+    print_error "Containers did not become healthy before the timeout"
+    return 1
 }
 
 verify_setup() {
@@ -167,7 +174,7 @@ verify_setup() {
     fi
 
     # Count instances
-    local count=$(docker-compose -f docker-compose.prod.yml ps -q app | wc -l | tr -d ' ')
+    local count=$(docker compose -f docker-compose.prod.yml ps -q app | wc -l | tr -d ' ')
     print_success "$count containers active"
     echo ""
 }
@@ -191,7 +198,7 @@ test_homepage_concurrent() {
     # Launch concurrent requests (suppress all output to avoid interfering with progress)
     for i in $(seq 1 $CONCURRENT_REQUESTS); do
         (
-            result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 30 "${BASE_URL}/" 2>/dev/null || echo "000,0")
+            result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 30 "${BASE_URL}/" 2>/dev/null || true)
             echo "$result" > "${temp_dir}/${i}.txt"
         ) >/dev/null 2>&1 &
 
@@ -267,7 +274,7 @@ test_api_burst() {
         # Launch batch and capture HTTP codes + response times
         for i in $(seq $batch_start $batch_end); do
             (
-                result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 10 "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
+                result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 10 "${BASE_URL}/api/hello" 2>/dev/null || true)
                 echo "$result" >> "$temp_file"
             ) >/dev/null 2>&1 &
         done
@@ -298,7 +305,8 @@ test_api_burst() {
         fi
     done < "$temp_file"
 
-    local total_requests=$((success + fail))
+    local total_requests=$TOTAL_REQUESTS
+    fail=$((total_requests - success))
 
     # Calculate metrics with zero-division protection
     if [ $success -gt 0 ]; then
@@ -349,7 +357,7 @@ test_sustained_load() {
         # Send batch of 10 requests in parallel (reduced from 20)
         for i in $(seq 1 10); do
             (
-                result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 15 "${BASE_URL}/api/hello" 2>/dev/null || echo "000,0")
+                result=$(curl -s -o /dev/null -w "%{http_code},%{time_total}" -m 15 "${BASE_URL}/api/hello" 2>/dev/null || true)
                 echo "$result" >> "$temp_file"
             ) &
         done
@@ -359,7 +367,7 @@ test_sustained_load() {
         local elapsed=$(($(date +%s) - (end_time - TEST_DURATION)))
 
         # Count current results
-        local current_success=$(grep -c "^200," "$temp_file" 2>/dev/null || echo "0")
+        local current_success=$(grep -c "^200," "$temp_file" 2>/dev/null || true)
         local current_total=$(wc -l < "$temp_file" 2>/dev/null | tr -d ' ')
 
         printf "\r  [%3ds/%3ds] Requests: %5d | Success: %5d | Errors: %3d" \
@@ -371,7 +379,7 @@ test_sustained_load() {
     echo ""
 
     # Calculate final metrics
-    success=$(grep -c "^200," "$temp_file" 2>/dev/null || echo "0")
+    success=$(grep -c "^200," "$temp_file" 2>/dev/null || true)
     request_count=$(wc -l < "$temp_file" 2>/dev/null | tr -d ' ')
 
     # Calculate average time from successful requests
@@ -418,13 +426,13 @@ test_mixed_workload() {
         local count=0
         while [ $(date +%s) -lt $end_time ]; do
             # Homepage
-            curl -s -o /dev/null -w "homepage,%{http_code}\n" "${BASE_URL}/" 2>/dev/null >> "$temp_file" &
+            curl -s --max-time 15 -o /dev/null -w "homepage,%{http_code}\n" "${BASE_URL}/" 2>/dev/null >> "$temp_file" &
 
             # API
-            curl -s -o /dev/null -w "api,%{http_code}\n" "${BASE_URL}/api/hello" 2>/dev/null >> "$temp_file" &
+            curl -s --max-time 15 -o /dev/null -w "api,%{http_code}\n" "${BASE_URL}/api/hello" 2>/dev/null >> "$temp_file" &
 
             # Weather
-            curl -s -o /dev/null -w "weather,%{http_code}\n" "${BASE_URL}/weather" 2>/dev/null >> "$temp_file" &
+            curl -s --max-time 15 -o /dev/null -w "weather,%{http_code}\n" "${BASE_URL}/weather" 2>/dev/null >> "$temp_file" &
 
             count=$((count + 1))
             local elapsed=$(($(date +%s) - (end_time - duration)))
@@ -432,15 +440,16 @@ test_mixed_workload() {
 
             sleep 0.3
         done
+        wait
     )
 
     wait
     echo ""
 
     # Count results
-    local homepage_success=$(grep "homepage,200" "$temp_file" 2>/dev/null | wc -l | tr -d ' ')
-    local api_success=$(grep "api,200" "$temp_file" 2>/dev/null | wc -l | tr -d ' ')
-    local weather_success=$(grep "weather,200" "$temp_file" 2>/dev/null | wc -l | tr -d ' ')
+    local homepage_success=$(grep -c "^homepage,200$" "$temp_file" || true)
+    local api_success=$(grep -c "^api,200$" "$temp_file" || true)
+    local weather_success=$(grep -c "^weather,200$" "$temp_file" || true)
     local total_success=$((homepage_success + api_success + weather_success))
     local total_requests=$(wc -l < "$temp_file" | tr -d ' ')
     local success_rate=$(echo "scale=1; $total_success * 100 / $total_requests" | bc)
@@ -452,6 +461,8 @@ test_mixed_workload() {
     TEST4_RESULTS[api]="$api_success"
     TEST4_RESULTS[weather]="$weather_success"
     TEST4_RESULTS[total]="$total_success / $total_requests"
+    TEST4_RESULTS[success]="$total_success"
+    TEST4_RESULTS[requests]="$total_requests"
     TEST4_RESULTS[success_rate]="${success_rate}%"
     TEST4_RESULTS[duration]="30s"
 
@@ -475,12 +486,12 @@ collect_metrics() {
 
     # CPU & Memory
     docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}" \
-        $(docker-compose -f docker-compose.prod.yml ps -q) 2>/dev/null | head -12
+        $(docker compose -f docker-compose.prod.yml ps -q) 2>/dev/null | head -12
 
     echo ""
 
     # Container health
-    local containers=($(docker-compose -f docker-compose.prod.yml ps -q app 2>/dev/null))
+    local containers=($(docker compose -f docker-compose.prod.yml ps -q app 2>/dev/null))
     local healthy=0
 
     for container in "${containers[@]}"; do
@@ -518,7 +529,7 @@ generate_report() {
         echo "=========================================="
         echo "What: Simulates ${TEST1_RESULTS[total]} users accessing the homepage simultaneously"
         echo "Why:  Tests how the app handles concurrent users and load distribution"
-        echo "Goal: Verify load balancer distributes traffic across all containers"
+        echo "Goal: Record HTTP success and mean response time; per-replica distribution is not measured"
         echo ""
         echo "Results:"
         echo "  Success Rate:        ${TEST1_RESULTS[success_rate]} (${TEST1_RESULTS[success]}/${TEST1_RESULTS[total]})"
@@ -530,8 +541,8 @@ generate_report() {
         echo "TEST 2: API BURST LOAD"
         echo "=========================================="
         echo "What: Sends ${TEST2_RESULTS[total]} API requests as fast as possible"
-        echo "Why:  Tests maximum throughput and system capacity under heavy burst"
-        echo "Goal: Verify app can handle sudden traffic spikes without crashing"
+        echo "Why:  Observe this configured request burst, including rate-limit responses"
+        echo "Goal: Apply the configured success/latency thresholds to this sample"
         echo ""
         echo "Results:"
         echo "  Total Requests:      ${TEST2_RESULTS[total]}"
@@ -546,7 +557,7 @@ generate_report() {
         echo "=========================================="
         echo "What: Continuous requests for ${TEST3_RESULTS[duration]} to simulate real traffic"
         echo "Why:  Tests system stability and performance under prolonged load"
-        echo "Goal: Verify no memory leaks, degradation, or failures over time"
+        echo "Goal: Observe HTTP errors and mean latency during this interval; not a memory-leak test"
         echo ""
         echo "Results:"
         echo "  Total Requests:      ${TEST3_RESULTS[total]}"
@@ -572,20 +583,23 @@ generate_report() {
         echo "=========================================="
         echo "CONTAINER STATUS"
         echo "=========================================="
-        docker-compose -f docker-compose.prod.yml ps 2>/dev/null
+        docker compose -f docker-compose.prod.yml ps 2>/dev/null
         echo ""
         echo "=========================================="
         echo "RESOURCE USAGE"
         echo "=========================================="
         docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" \
-            $(docker-compose -f docker-compose.prod.yml ps -q 2>/dev/null) 2>/dev/null | head -15
+            $(docker compose -f docker-compose.prod.yml ps -q 2>/dev/null) 2>/dev/null | head -15
         echo ""
         echo "=========================================="
         echo "SUMMARY"
         echo "=========================================="
         echo "  ✓ All 4 tests completed"
         echo "  ✓ Report generated: $(basename $REPORT_FILE)"
-        echo "  ✓ System ready for production"
+        echo "  Threshold result: $THRESHOLD_STATUS"
+        echo "  Error-rate limit: ${MAX_ERROR_RATE:-1}%"
+        echo "  Mean response-time limit: ${MAX_AVG_RESPONSE_SECONDS:-2}s (tests 1-3)"
+        echo "  This synthetic run does not establish production readiness."
         echo "=========================================="
     } | tee "$REPORT_FILE"
 
@@ -593,7 +607,7 @@ generate_report() {
     print_result "Report Saved" "$REPORT_FILE"
     print_result "Results Directory" "$RESULTS_DIR"
 
-    echo -e "\n${GREEN}✓ All tests completed successfully!${NC}\n"
+    echo "Threshold result: $THRESHOLD_STATUS"
 }
 
 # ============================================================================
@@ -621,8 +635,18 @@ main() {
     # Collect metrics
     collect_metrics
 
-    # Generate report
+    # Keep the report even when acceptance thresholds fail.
+    local status=0
+    check_load_threshold homepage "${TEST1_RESULTS[success]}" "${TEST1_RESULTS[total]}" "${TEST1_RESULTS[avg_time]%s}" || status=1
+    check_load_threshold burst "${TEST2_RESULTS[success]}" "${TEST2_RESULTS[total]}" "${TEST2_RESULTS[avg_time]%s}" || status=1
+    check_load_threshold sustained "${TEST3_RESULTS[success]}" "${TEST3_RESULTS[total]}" "${TEST3_RESULTS[avg_time]%s}" || status=1
+    check_load_threshold mixed "${TEST4_RESULTS[success]}" "${TEST4_RESULTS[requests]}" skip || status=1
+    THRESHOLD_STATUS=PASS
+    [ "$status" -eq 0 ] || THRESHOLD_STATUS=FAIL
     generate_report
+    return "$status"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

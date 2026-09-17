@@ -8,25 +8,25 @@ build: ## Build production image with consistent build ID
 	./scripts/build-production.sh
 
 up: ## Start production containers
-	docker-compose -f docker-compose.prod.yml up -d
+	docker compose -f docker-compose.prod.yml up -d
 
 down: ## Stop production containers
-	docker-compose -f docker-compose.prod.yml down
+	docker compose -f docker-compose.prod.yml down
 
 logs: ## View container logs
-	docker-compose -f docker-compose.prod.yml logs -f
+	docker compose -f docker-compose.prod.yml logs -f
 
 scale: ## Scale to N instances (make scale N=10)
-	docker-compose -f docker-compose.prod.yml up -d --scale app=$(N)
+	docker compose -f docker-compose.prod.yml up -d --scale app=$(N)
 
 rebuild: ## Rebuild and restart with 10 instances
-	./scripts/build-production.sh && docker-compose -f docker-compose.prod.yml up -d --scale app=10
+	./scripts/build-production.sh && docker compose -f docker-compose.prod.yml up -d --scale app=10
 
 check-build: ## Check build ID consistency across containers
 	./scripts/check-build-id.sh
 
 clean: ## Stop containers and clean up
-	docker-compose -f docker-compose.prod.yml down -v
+	docker compose -f docker-compose.prod.yml down -v
 	docker system prune -f
 
 # Testing

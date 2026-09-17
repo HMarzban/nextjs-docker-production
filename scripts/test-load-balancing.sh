@@ -16,12 +16,12 @@ echo -e "${BLUE}================================================${NC}\n"
 
 # Check if services are running
 echo -e "${YELLOW}[1/6] Checking Docker services...${NC}"
-if ! docker-compose -f docker-compose.prod.yml ps | grep -q "Up"; then
-    echo -e "${RED}❌ Services not running. Start with: docker-compose -f docker-compose.prod.yml up -d --scale app=3${NC}"
+if ! docker compose -f docker-compose.prod.yml ps | grep -q "Up"; then
+    echo -e "${RED}❌ Services not running. Start with: docker compose -f docker-compose.prod.yml up -d --scale app=3${NC}"
     exit 1
 fi
 
-APP_COUNT=$(docker-compose -f docker-compose.prod.yml ps app | grep "Up" | wc -l)
+APP_COUNT=$(docker compose -f docker-compose.prod.yml ps app | grep "Up" | wc -l)
 echo -e "${GREEN}✓ Found ${APP_COUNT} app instances running${NC}\n"
 
 # Check nginx health
@@ -94,7 +94,7 @@ echo -e "${GREEN}✓ Average response time: ${avg_time}s${NC}\n"
 
 # Check all containers are healthy
 echo -e "${YELLOW}[6/6] Verifying container health...${NC}"
-unhealthy=$(docker-compose -f docker-compose.prod.yml ps | grep -v "healthy" | grep "app" | wc -l)
+unhealthy=$(docker compose -f docker-compose.prod.yml ps | grep -v "healthy" | grep "app" | wc -l)
 
 if [ $unhealthy -eq 0 ]; then
     echo -e "${GREEN}✓ All app containers are healthy${NC}\n"
@@ -114,6 +114,6 @@ echo -e "${BLUE}================================================${NC}\n"
 
 # Show actual container distribution (optional - requires docker logs)
 echo -e "${YELLOW}Checking nginx access logs for distribution...${NC}"
-docker-compose -f docker-compose.prod.yml logs --tail=50 nginx | grep -E "GET|POST" | tail -20
+docker compose -f docker-compose.prod.yml logs --tail=50 nginx | grep -E "GET|POST" | tail -20
 
 echo -e "\n${GREEN}🎉 All tests passed! Your load balancer is working.${NC}"

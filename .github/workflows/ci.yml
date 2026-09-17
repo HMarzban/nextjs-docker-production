@@ -32,6 +32,9 @@ jobs:
       - name: Type check
         run: bun run type-check
 
+      - name: Test load-test failure thresholds
+        run: bash scripts/test-load-thresholds.sh
+
       - name: Check formatting
         run: bun run format:check
 
@@ -69,17 +72,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build with docker-compose
+      - name: Verify Compose plugin
+        run: docker compose version
+
+      - name: Build with Docker Compose
         run: |
           export BUILD_ID="ci-build-${{ github.sha }}"
           export GIT_HASH="${{ github.sha }}"
-          docker-compose -f docker-compose.prod.yml build
+          docker compose -f docker-compose.prod.yml build
 
       - name: Start containers
         run: |
           export BUILD_ID="ci-build-${{ github.sha }}"
           export GIT_HASH="${{ github.sha }}"
-          docker-compose -f docker-compose.prod.yml up -d --scale app=2
+          docker compose -f docker-compose.prod.yml up -d --scale app=2 --wait --wait-timeout 120
 
       - name: Wait for health checks
         run: |
@@ -94,14 +100,21 @@ jobs:
             elapsed=$((elapsed + 2))
           done
           echo "Health check timeout"
-          docker-compose -f docker-compose.prod.yml logs
+          docker compose -f docker-compose.prod.yml logs
           exit 1
 
       - name: Test API endpoint
         run: |
           curl -f http://localhost:3009/api/hello || exit 1
 
+      - name: Run API smoke assertions
+        run: bash scripts/test-api.sh
+
+      - name: Collect diagnostics
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml logs --no-color
+
       - name: Cleanup
         if: always()
         run: |
-          docker-compose -f docker-compose.prod.yml down -v
+          docker compose -f docker-compose.prod.yml down -v
