@@ -9,7 +9,7 @@ WORKDIR /app
 # Use wildcard to handle both bun.lockb and bun.lock
 COPY package.json bun.lock* ./
 # Install all dependencies including devDependencies (needed for build)
-RUN bun install --frozen-lockfile --verbose
+RUN bun install --frozen-lockfile
 
 # Build layer
 FROM base AS builder

@@ -18,7 +18,7 @@ echo -e "${CYAN}╔════════════════════�
 
 # Get container IDs
 echo -e "${YELLOW}→ Discovering app containers...${NC}"
-CONTAINERS=($(docker-compose -f docker-compose.prod.yml ps -q app))
+CONTAINERS=($(docker compose -f docker-compose.prod.yml ps -q app))
 CONTAINER_COUNT=${#CONTAINERS[@]}
 
 if [ $CONTAINER_COUNT -eq 0 ]; then
@@ -36,7 +36,7 @@ echo ""
 
 # Clear nginx logs
 echo -e "${YELLOW}→ Clearing nginx logs...${NC}"
-docker-compose -f docker-compose.prod.yml exec -T nginx sh -c "echo '' > /var/log/nginx/access.log" 2>/dev/null
+docker compose -f docker-compose.prod.yml exec -T nginx sh -c "echo '' > /var/log/nginx/access.log" 2>/dev/null
 echo ""
 
 # Make requests
@@ -71,7 +71,7 @@ echo -e "\n"
 echo -e "${YELLOW}→ Analyzing request distribution...${NC}"
 
 # Get nginx logs and extract upstream addresses
-LOG_OUTPUT=$(docker-compose -f docker-compose.prod.yml logs --tail=100 nginx 2>/dev/null | grep "GET\|POST")
+LOG_OUTPUT=$(docker compose -f docker-compose.prod.yml logs --tail=100 nginx 2>/dev/null | grep "GET\|POST")
 
 # Count requests to each container by analyzing nginx upstream logs
 # This is a simplified approach - in production you'd add custom logging
@@ -86,7 +86,7 @@ echo -e "${GREEN}Success Rate:${NC} $(echo "scale=2; $success_count * 100 / $REQ
 
 # Check if requests are distributed (rough check via container CPU/memory)
 echo -e "${YELLOW}→ Checking container resource usage...${NC}\n"
-docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(docker-compose -f docker-compose.prod.yml ps -q app) | grep -v "CONTAINER"
+docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(docker compose -f docker-compose.prod.yml ps -q app) | grep -v "CONTAINER"
 
 echo -e "\n${CYAN}╔════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║   Health Check                             ║${NC}"

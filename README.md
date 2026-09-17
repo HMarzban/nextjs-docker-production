@@ -1,25 +1,25 @@
 # Next.js Production Stack
 
-Production-ready Next.js application optimized for Docker and Bun runtime. Features horizontal scaling, Nginx load balancing, and comprehensive testing.
+A Next.js deployment example using Bun, a multistage Docker image and Nginx. It explores replica scaling, consistent build IDs, health checks and synthetic load testing. CI verifies builds and HTTP behavior; browser/PWA checks remain manual.
 
 ## 🚀 Features
 
-- **Next.js 15.5** - Latest with Turbopack and React 19
+- **Next.js 15.5** - With Turbopack and React 19
 - **TypeScript** - Full type safety with strict mode
 - **Bun Runtime** - Optimized for Bun with fast package management and runtime
 - **Docker Optimized** - Multi-stage builds with Alpine, optimized layers, and production-ready configuration
-- **Horizontal Scaling** - Tested with 10+ instances
+- **Horizontal Scaling** - Configurable Compose replicas; choose a count that fits your host
 - **Nginx Load Balancer** - Production-grade reverse proxy
 - **PWA Support** - Offline mode, installable, auto-updates
 - **Code Quality** - ESLint, Prettier, input validation
 - **Error Handling** - Structured logging and error responses
-- **Load Testing** - Comprehensive performance testing suite
+- **Load Testing** - Synthetic load tests with configurable failure thresholds
 
 ## 📋 Prerequisites
 
-- **Bun** >= 1.0 (or Node.js >= 18)
+- **Bun** >= 1.0 (the supplied build/run scripts use Bun)
 - **Docker** >= 20.10
-- **Docker Compose** >= 2.4
+- **Docker Compose** v2 plugin (`docker compose`) or newer
 
 ## 🏃 Quick Start
 
@@ -178,7 +178,7 @@ Consistent build IDs prevent version skew across containers:
 make build
 
 # Manual
-BUILD_ID="v1.2.3" docker-compose -f docker-compose.prod.yml build
+BUILD_ID="v1.2.3" docker compose -f docker-compose.prod.yml build
 ```
 
 ### Nginx Configuration
@@ -259,11 +259,11 @@ Full PWA support with offline capabilities:
 1. Build production: `bun run build && bun run start`
 2. Open Chrome/Edge → Install icon in address bar
 3. Test offline: DevTools → Network → Offline
-4. Check Lighthouse PWA audit (should score 90+)
+4. Check browser installation criteria; record the actual result
 
 ## 🧪 Load Testing
 
-Comprehensive load testing suite:
+Synthetic load testing helpers (see the [methodology and limits](docs/LOAD-TEST.md)):
 
 ```bash
 # Standard test
@@ -314,7 +314,7 @@ curl http://localhost:3009/health
 curl http://localhost:3009/api/hello
 
 # Container status
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 ```
 
 ### Resource Monitoring
@@ -328,7 +328,7 @@ curl http://localhost:3009/nginx_status
 
 # View logs
 make logs
-docker-compose -f docker-compose.prod.yml logs -f app
+docker compose -f docker-compose.prod.yml logs -f app
 ```
 
 ## 🔍 Troubleshooting
@@ -347,9 +347,9 @@ make rebuild
 
 ### High Error Rate
 
-1. Check container health: `docker-compose ps`
+1. Check container health: `docker compose -f docker-compose.prod.yml ps`
 2. Check logs: `make logs`
-3. Verify nginx config: `docker-compose exec nginx nginx -t`
+3. Verify nginx config: `docker compose -f docker-compose.prod.yml exec nginx nginx -t`
 4. Check resource limits: `docker stats`
 
 ### Build ID Mismatch
@@ -388,7 +388,7 @@ Detailed guides available in `docs/`:
 - **Framework:** Next.js 15.5
 - **Language:** TypeScript 5.x
 - **Styling:** Tailwind CSS v4, daisyUI 5.x
-- **Validation:** Zod 3.x
+- **Validation:** Zod 4.x
 - **Deployment:** Docker + Docker Compose (optimized multi-stage builds)
 - **Load Balancer:** Nginx Alpine
 - **PWA:** @ducanh2912/next-pwa
@@ -407,4 +407,5 @@ Contributions welcome. Fork, make changes, test, and submit a PR.
 
 ## 📝 License
 
-MIT
+The original README declares MIT, but this repository has no standalone license
+file. This maintenance pass preserves that declaration without adding new terms.

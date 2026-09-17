@@ -32,14 +32,14 @@ export GIT_HASH
 
 # Build
 echo -e "${CYAN}Running docker-compose build...${NC}\n"
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 
 echo -e "\n${GREEN}✓ Build complete!${NC}"
 echo -e "${GREEN}  Build ID: ${BUILD_ID}${NC}"
 echo -e "${GREEN}  Git Hash: ${GIT_HASH}${NC}\n"
 
 echo -e "${CYAN}Next steps:${NC}"
-echo -e "  Start: ${YELLOW}docker-compose -f docker-compose.prod.yml up -d --scale app=10${NC}"
+echo -e "  Start: ${YELLOW}docker compose -f docker-compose.prod.yml up -d --scale app=10${NC}"
 echo -e "  Test:  ${YELLOW}./scripts/stress-test.sh${NC}\n"
 
 echo -e "${CYAN}📍 Access your application:${NC}"

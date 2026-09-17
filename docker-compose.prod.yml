@@ -8,7 +8,7 @@ services:
         # Consistent build ID for horizontal scaling (prevents version skew)
         - BUILD_ID=${BUILD_ID:-production-build}
         - GIT_HASH=${GIT_HASH:-latest}
-    image: nextjs-app:latest
+    image: ${APP_IMAGE:-nextjs-app:latest}
     # DO NOT add container_name - it breaks scaling
     expose:
       - "3000"
@@ -47,8 +47,7 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "3009:80"
-      - "443:443"
+      - "${HTTP_PORT:-3009}:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
@@ -82,4 +81,3 @@ services:
 networks:
   app-network:
     driver: bridge
-    name: nextjs-app-network
