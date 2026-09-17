@@ -407,5 +407,4 @@ Contributions welcome. Fork, make changes, test, and submit a PR.
 
 ## 📝 License
 
-The original README declares MIT, but this repository has no standalone license
-file. This maintenance pass preserves that declaration without adding new terms.
+Licensed under the [MIT License](LICENSE).
